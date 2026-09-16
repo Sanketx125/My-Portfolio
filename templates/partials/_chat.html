@@ -1,0 +1,41 @@
+<div class="chat-widget" id="chat-widget">
+  <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Open chat with {{ content.name }}'s AI" aria-expanded="false" aria-controls="chat-panel">
+    <svg class="chat-launcher__icon-open" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M4 4h16v12H7.5L4 19.5V4Z"/></svg>
+    <svg class="chat-launcher__icon-close" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 4.98 4.98 6.4 10.59 12l-5.61 5.6 1.41 1.42L12 13.4l5.6 5.61 1.42-1.41L13.4 12l5.61-5.6-1.41-1.42L12 10.59 6.4 4.98Z"/></svg>
+  </button>
+
+  <div class="chat-panel" id="chat-panel" role="dialog" aria-modal="false" aria-label="Chat with {{ content.name }}'s AI" hidden>
+    <div class="chat-panel__header">
+      <div class="chat-panel__top">
+        <div class="chat-panel__id">
+          <span class="chat-avatar" aria-hidden="true">{{ content.name.split(' ')[0][0] }}{{ content.name.split(' ')[-1][0] }}</span>
+          <div>
+            <p class="chat-panel__title">Ask {{ content.name.split(' ')[0] }}'s AI</p>
+            <p class="chat-panel__subtitle"><span class="dot" aria-hidden="true"></span> Answers from this page only</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button type="button" class="chat-panel__close" id="chat-clear" aria-label="Clear conversation" title="Clear conversation">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+          </button>
+          <button type="button" class="chat-panel__close" id="chat-close" aria-label="Close chat">&times;</button>
+        </div>
+      </div>
+
+      <div class="chat-modes" role="group" aria-label="Assistant mode">
+        <button type="button" class="chat-mode is-active" data-chat-mode="default" aria-pressed="true">Ask</button>
+        <button type="button" class="chat-mode" data-chat-mode="recruiter" aria-pressed="false">Recruiter pitch</button>
+      </div>
+    </div>
+
+    <div class="chat-panel__messages" id="chat-messages" aria-live="polite"></div>
+
+    <form class="chat-panel__form" id="chat-form">
+      <label for="chat-input" class="sr-only">Type a message</label>
+      <input type="text" id="chat-input" placeholder="Ask about my work..." autocomplete="off" maxlength="800">
+      <button type="submit" class="chat-panel__send" aria-label="Send">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="m3 12 18-8-8 18-2.5-7.5L3 12Z"/></svg>
+      </button>
+    </form>
+  </div>
+</div>

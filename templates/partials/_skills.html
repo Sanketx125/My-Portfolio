@@ -1,0 +1,31 @@
+<section class="section" id="skills" aria-label="Skills">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">02 — Skills</p>
+      <h2 class="section__title">The stack I build with</h2>
+      <p class="section__lead">Deep learning and geospatial data engineering, wired into production software.</p>
+    </div>
+
+    {% set groups = [
+      ("ai_ml", "AI &amp; Machine Learning", "M12 3a4 4 0 0 0-4 4v1a3 3 0 0 0 0 6v1a4 4 0 0 0 8 0v-1a3 3 0 0 0 0-6V7a4 4 0 0 0-4-4Z"),
+      ("geospatial", "Geospatial &amp; Remote Sensing", "M12 2 3 7v10l9 5 9-5V7l-9-5Zm0 4.2 5.5 3L12 12.2 6.5 9.2 12 6.2Z"),
+      ("software", "Software &amp; Data", "m8.5 8-4.5 4 4.5 4M15.5 8l4.5 4-4.5 4M13 5l-2 14")
+    ] %}
+
+    <div class="skills-grid">
+      {% for key, label, icon in groups %}
+      <div class="glass card reveal" style="--i: {{ loop.index0 }};">
+        <div class="skill-group__head">
+          <span class="skill-group__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ icon }}"/></svg>
+          </span>
+          <h3>{{ label | safe }}</h3>
+        </div>
+        <ul class="chip-list">
+          {% for skill in content.skills[key] %}<li class="chip">{{ skill }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

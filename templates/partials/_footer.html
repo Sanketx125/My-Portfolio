@@ -1,0 +1,44 @@
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__cta">
+      <h3>{{ content.name }}</h3>
+      <p>{{ content.tagline }}</p>
+    </div>
+
+    <nav class="footer__nav" aria-label="Footer">
+      <a href="#about">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#projects">Projects</a>
+      <a href="#github">GitHub</a>
+      <a href="#experience">Experience</a>
+      <a href="#resume">R&eacute;sum&eacute;</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="footer__socials" aria-label="Social links">
+      {% if content.socials.github %}
+      <a href="{{ content.socials.github }}" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.93 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.83-2.34 4.68-4.57 4.92.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+      </a>
+      {% endif %}
+      {% if content.socials.linkedin %}
+      <a href="{{ content.socials.linkedin }}" target="_blank" rel="noopener" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M6.94 8.5H3.56V21h3.38V8.5ZM5.25 3a1.96 1.96 0 1 0 0 3.92A1.96 1.96 0 0 0 5.25 3ZM20.44 21h-3.37v-6.36c0-1.52-.03-3.47-2.11-3.47-2.12 0-2.45 1.65-2.45 3.36V21H9.15V8.5h3.24v1.71h.05c.45-.85 1.56-1.75 3.21-1.75 3.44 0 4.79 2.19 4.79 5.34V21Z"/></svg>
+      </a>
+      {% endif %}
+      {% if content.socials.twitter_x %}
+      <a href="{{ content.socials.twitter_x }}" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18.9 2H22l-7.5 8.57L23.3 22h-6.9l-5.4-6.98L4.7 22H1.6l8.03-9.17L1 2h7.07l4.9 6.4L18.9 2Zm-1.2 18.2h1.7L7.4 3.7H5.6l12.1 16.5Z"/></svg>
+      </a>
+      {% endif %}
+      <a href="mailto:{{ content.email }}" aria-label="Email">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6 8.5-6"/></svg>
+      </a>
+    </div>
+
+    <p class="footer__credit">
+      <span>&copy; <span id="year"></span> {{ content.name }}. All rights reserved.</span>
+      <span>Built with Flask, Jinja &amp; GSAP &middot; <button type="button" class="link-btn" id="palette-open-footer">Press Ctrl+K to navigate</button></span>
+    </p>
+  </div>
+</footer>

@@ -1,0 +1,33 @@
+<section class="section" id="about" aria-label="About">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">01 — About</p>
+      <h2 class="section__title">AI systems that understand the physical world</h2>
+    </div>
+
+    <div class="bento">
+      <div class="glass card col-7 reveal">
+        <p>{{ content.about }}</p>
+        {% if content.resume and content.resume.highlights %}
+        <ul class="highlight-list" style="margin-top: var(--s-5);">
+          {% for item in content.resume.highlights[:3] %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <div class="glass card col-5 reveal" style="--i: 1;">
+        <p class="card__label">By the numbers</p>
+        <div class="about__stats" id="stats">
+          {% for stat in content.stats %}
+          <div class="stat">
+            <p class="stat__number" data-count-to="{{ stat.number }}">0</p>
+            <span class="stat__label">{{ stat.label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

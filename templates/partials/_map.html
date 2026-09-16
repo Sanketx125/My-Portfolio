@@ -1,0 +1,32 @@
+<section class="section" id="map" aria-label="Project map">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">04 — Where</p>
+      <h2 class="section__title">The work, on the map</h2>
+      <p class="section__lead">Geospatial work is spatial by nature. Every project below has a real place behind it — pick one to see where it lives.</p>
+    </div>
+
+    <div class="map-grid">
+      <div class="glass map-panel reveal reveal--scale" id="map-panel">
+        <div class="map-canvas" id="project-map" role="img" aria-label="Map of project locations"></div>
+      </div>
+
+      <div class="map-list reveal reveal--right" id="map-list" style="--i: 1;">
+        {% for project in content.projects %}
+        {% if project.coords %}
+        <button type="button" class="map-list__item" data-map-index="{{ loop.index0 }}"
+                data-project-index="{{ loop.index0 }}">
+          <span class="map-list__dot" aria-hidden="true"></span>
+          <span>
+            <span class="map-list__title">{{ project.title }}</span>
+            <span class="map-list__meta">{{ project.location }}</span>
+          </span>
+        </button>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="map-data">{{ content.projects | tojson }}</script>
+</section>

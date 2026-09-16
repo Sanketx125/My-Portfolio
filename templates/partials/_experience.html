@@ -1,0 +1,46 @@
+<section class="section" id="experience" aria-label="Experience">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">06 — Experience</p>
+      <h2 class="section__title">Where I've built it</h2>
+    </div>
+
+    <div class="experience-grid">
+      <ol class="timeline">
+        {% for job in content.experience %}
+        <li class="timeline__item reveal" style="--i: {{ loop.index0 }};">
+          <span class="timeline__index" aria-hidden="true">{{ '%02d' % loop.index }}</span>
+          <div class="timeline__head">
+            <h3>{{ job.role }} <span class="timeline__company">&middot; {{ job.company }}</span></h3>
+            {% if job.current %}<span class="badge">Current</span>{% endif %}
+          </div>
+          <p class="timeline__dates">{{ job.dates }} &middot; {{ job.location }}</p>
+          <ul class="timeline__bullets">
+            {% for bullet in job.bullets %}<li>{{ bullet }}</li>{% endfor %}
+          </ul>
+        </li>
+        {% endfor %}
+      </ol>
+
+      <div>
+        <div class="glass card reveal reveal--right">
+          <p class="card__label">Education</p>
+          {% for edu in content.education %}
+          <h3 class="card__title">{{ edu.degree }}</h3>
+          <p style="color: var(--text-2); font-size: var(--fs-sm); margin: 0;">
+            {{ edu.school }}<br>{{ edu.dates }} &middot; {{ edu.detail }}
+          </p>
+          {% endfor %}
+        </div>
+
+        {% if content.availability %}
+        <div class="glass card reveal reveal--right" style="margin-top: var(--s-5); --i: 1;">
+          <p class="card__label">Currently</p>
+          <p style="margin: 0 0 var(--s-4); color: var(--text-2);">{{ content.availability }}</p>
+          <a href="#contact" class="btn btn--primary btn--small">Start a conversation</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>

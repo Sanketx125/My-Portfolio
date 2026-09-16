@@ -1,0 +1,24 @@
+<section class="section" id="ai-chat" aria-label="AI Assistant">
+  <div class="section__inner ai-intro">
+    <div class="section__head reveal" style="margin-bottom: var(--s-5);">
+      <p class="section__eyebrow">08 — AI Assistant</p>
+      <h2 class="section__title">Ask {{ content.name.split(' ')[0] }}'s AI</h2>
+      <p class="section__lead">
+        Have a question about my background, a project, or whether I fit what you're building?
+        The assistant only knows what's on this page — no invented answers.
+      </p>
+    </div>
+
+    <div class="ai-intro__prompts reveal">
+      <button type="button" class="chip chip--button" data-sample-prompt="What geospatial AI work have you done?">What geospatial AI work have you done?</button>
+      <button type="button" class="chip chip--button" data-sample-prompt="Tell me about your LLM and RAG experience.">Tell me about your LLM / RAG experience</button>
+      <button type="button" class="chip chip--button" data-sample-prompt="Which project best shows your computer-vision skill?">Which project shows your CV work?</button>
+      <button type="button" class="chip chip--button" data-sample-prompt="Are you open to freelance projects?">Are you open to freelance projects?</button>
+    </div>
+
+    <div class="reveal" style="display: flex; gap: var(--s-3); flex-wrap: wrap;">
+      <button type="button" class="btn btn--primary" id="open-chat-section">Open chat</button>
+      <button type="button" class="btn btn--ghost" data-open-pitch>Pitch me for a role</button>
+    </div>
+  </div>
+</section>

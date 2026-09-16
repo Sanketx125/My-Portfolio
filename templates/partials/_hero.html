@@ -1,0 +1,47 @@
+<section class="hero" id="top" aria-label="Introduction">
+  <div class="graticule" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <div class="hero__text">
+      <p class="hero__coords" aria-hidden="true">12.9716&deg; N, 77.5946&deg; E</p>
+
+      {% if content.availability %}
+      <p class="hero__badge"><span class="dot" aria-hidden="true"></span>{{ content.availability }}</p>
+      {% endif %}
+
+      <h1 class="hero__name">{{ content.name }}</h1>
+      <p class="hero__role">
+        <span id="role-text" data-roles="{{ content.title }}"></span><span class="hero__cursor" aria-hidden="true">|</span>
+      </p>
+      <p class="hero__tagline">{{ content.tagline }}</p>
+
+      <div class="hero__ctas">
+        <a href="#projects" class="btn btn--primary">View projects</a>
+        <button type="button" class="btn btn--ghost" id="open-chat-hero">Ask my AI</button>
+      </div>
+
+      <p class="hero__meta">
+        {{ content.location }}
+        &middot; <a href="{{ url_for('static', filename=content.resume_pdf) }}" download>R&eacute;sum&eacute;</a>
+        {% if content.socials.github %}&middot; <a href="{{ content.socials.github }}" target="_blank" rel="noopener">GitHub</a>{% endif %}
+        {% if content.socials.linkedin %}&middot; <a href="{{ content.socials.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+        &middot; <button type="button" class="link-btn" data-open-pitch>Pitch me for a role</button>
+      </p>
+    </div>
+
+    <div class="hero__visual">
+      <div class="hero__photo-frame">
+        <img src="{{ url_for('static', filename=content.photo) }}" alt="Portrait of {{ content.name }}" class="hero__photo" width="288" height="288">
+      </div>
+      <svg id="contour-svg" class="hero__contours" viewBox="0 0 600 600" aria-hidden="true" focusable="false">
+        <path class="contour-line" d="M80,300 C80,180 180,80 300,80 C420,80 520,180 520,300 C520,420 420,520 300,520 C180,520 80,420 80,300 Z"/>
+        <path class="contour-line" d="M130,300 C130,205 205,130 300,130 C395,130 470,205 470,300 C470,395 395,470 300,470 C205,470 130,395 130,300 Z"/>
+        <path class="contour-line" d="M175,290 C170,205 235,150 305,155 C390,160 445,225 440,305 C435,390 365,445 290,438 C210,430 180,370 175,290 Z"/>
+        <path class="contour-line" d="M220,295 C215,235 260,200 310,202 C370,205 405,250 400,305 C396,365 350,400 305,397 C250,393 224,350 220,295 Z"/>
+        <path class="contour-line" d="M258,298 C256,262 282,240 312,242 C348,244 368,268 366,300 C364,335 336,356 310,354 C278,352 260,328 258,298 Z"/>
+        <circle class="contour-point" cx="312" cy="300" r="4"/>
+      </svg>
+    </div>
+  </div>
+
+  <a class="hero__scroll" href="#about" aria-label="Scroll to content"><span></span></a>
+</section>

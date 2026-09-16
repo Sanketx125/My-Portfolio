@@ -1,0 +1,174 @@
+<section class="section" id="github" aria-label="GitHub activity">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">05 — GitHub</p>
+      <h2 class="section__title">Proof of work, straight from the source</h2>
+      <p class="section__lead">Live activity pulled from GitHub — contributions, languages and repositories.</p>
+    </div>
+
+    {% if github.configured %}
+    <div class="gh-stats">
+      <div class="glass gh-stat reveal">
+        <span class="gh-stat__value" data-count-to="{{ github.totals.public_repos }}">0</span>
+        <span class="gh-stat__label">Public repos</span>
+      </div>
+      <div class="glass gh-stat reveal" style="--i: 1;">
+        <span class="gh-stat__value" data-count-to="{{ github.totals.private_repos }}">0</span>
+        <span class="gh-stat__label">Private repos</span>
+      </div>
+      <div class="glass gh-stat reveal" style="--i: 2;">
+        <span class="gh-stat__value" data-count-to="{{ github.totals.stars }}">0</span>
+        <span class="gh-stat__label">Stars earned</span>
+      </div>
+      <div class="glass gh-stat reveal" style="--i: 3;">
+        <span class="gh-stat__value" data-count-to="{{ github.totals.contributions }}">0</span>
+        <span class="gh-stat__label">Contributions (1y)</span>
+      </div>
+    </div>
+
+    <div class="gh-grid">
+      <div class="glass card col-8 reveal">
+        <div class="project-card__top" style="margin-bottom: var(--s-4);">
+          <div>
+            <p class="card__label" style="margin: 0;">Contribution activity</p>
+            <p style="margin: 0; color: var(--text-2); font-size: var(--fs-sm);">
+              {{ github.calendar.total }} contributions in the last year
+              {% if github.activity.commits %}· {{ github.activity.commits }} commits{% endif %}
+              {% if github.activity.prs %}· {{ github.activity.prs }} PRs{% endif %}
+            </p>
+          </div>
+          <span class="badge">Live</span>
+        </div>
+
+        <div class="heatmap-scroll">
+          <div class="heatmap__grid" role="img" aria-label="Contribution heatmap for the last year">
+            {% set weeks = github.calendar.weeks %}
+            {% set pad = (7 - (weeks[0] | length)) if weeks else 0 %}
+            {% for _ in range(pad) %}<span class="heatmap__cell" style="visibility: hidden;"></span>{% endfor %}
+            {% for week in weeks %}
+              {% for day in week %}
+              <span class="heatmap__cell lvl-{{ day.level }}"
+                    title="{{ day.count }} contribution{{ '' if day.count == 1 else 's' }} on {{ day.date }}"></span>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="heatmap__legend" style="margin-top: var(--s-4);">
+          <span>Less</span>
+          <span class="heatmap__cell lvl-0"></span>
+          <span class="heatmap__cell lvl-1"></span>
+          <span class="heatmap__cell lvl-2"></span>
+          <span class="heatmap__cell lvl-3"></span>
+          <span class="heatmap__cell lvl-4"></span>
+          <span>More</span>
+        </div>
+      </div>
+
+      <div class="glass card col-4 reveal" style="--i: 1;">
+        <p class="card__label">Languages</p>
+        {% if github.languages %}
+        {% set C = 339.292 %}
+        <div class="donut-wrap">
+          <svg class="donut" viewBox="0 0 128 128" role="img" aria-label="Language breakdown by repository count">
+            <circle cx="64" cy="64" r="54" fill="none" stroke="var(--surface-2)" stroke-width="16"/>
+            {% set ns = namespace(offset=0) %}
+            {% for lang in github.languages %}
+              {% set dash = (lang.pct / 100) * C %}
+              <circle class="donut__seg" cx="64" cy="64" r="54" stroke="{{ lang.color }}"
+                      stroke-dasharray="{{ '%.2f'|format(dash) }} {{ '%.2f'|format(C - dash) }}"
+                      stroke-dashoffset="{{ '%.2f'|format(-ns.offset) }}">
+                <title>{{ lang.name }} — {{ lang.pct }}%</title>
+              </circle>
+              {% set ns.offset = ns.offset + dash %}
+            {% endfor %}
+            <text class="donut__center" x="64" y="64" text-anchor="middle" dominant-baseline="central" transform="rotate(90 64 64)">{{ github.languages | length }} langs</text>
+          </svg>
+
+          <div class="lang-list">
+            {% for lang in github.languages[:6] %}
+            <div class="lang-row">
+              <span class="lang-row__dot" style="background: {{ lang.color }};"></span>
+              <span class="lang-row__name">{{ lang.name }}</span>
+              <span class="lang-row__pct">{{ lang.pct }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <p style="color: var(--text-3); font-size: var(--fs-sm); margin: 0;">No public repositories to analyse yet.</p>
+        {% endif %}
+      </div>
+
+      {% if github.featured %}
+      <div class="col-12 reveal" style="--i: 2;">
+        <p class="card__label">Featured repositories</p>
+        <div class="gh-repos">
+          {% for repo in github.featured %}
+          <a class="repo-card" href="{{ repo.url }}" target="_blank" rel="noopener">
+            <span class="repo-card__name">{{ repo.name }}</span>
+            <p class="repo-card__desc">{{ repo.description or "No description provided." }}</p>
+            <span class="repo-card__meta">
+              {% if repo.language %}
+              <span class="repo-card__lang"><i style="background: {{ repo.color }};"></i>{{ repo.language }}</span>
+              {% endif %}
+              <span>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="m12 3 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3 1.2-6.5L2.5 9.9 9.1 9 12 3Z"/></svg>
+                {{ repo.stars }}
+              </span>
+              <span>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M6 3a3 3 0 0 0-1 5.83v6.34a3 3 0 1 0 2 0V9.9a3 3 0 0 0 0-5.9 3 3 0 0 0-1 0Zm9 3a3 3 0 0 0-2 .76V18a3 3 0 1 0 4 .9V9.83A3 3 0 0 0 15 6Z"/></svg>
+                {{ repo.forks }}
+              </span>
+            </span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <p style="margin-top: var(--s-5); font-size: var(--fs-xs); color: var(--text-3);">
+      Private repositories are shown as a count only — never by name.
+      {% if github.fetched_at %}· Updated {{ github.fetched_at }}{% endif %}
+    </p>
+
+    {% else %}
+    <div class="glass card reveal">
+      <div class="project-card__top">
+        <div>
+          <p class="card__label" style="margin: 0;">Live dashboard</p>
+          <h3 class="card__title" style="margin: var(--s-2) 0 0;">Waiting on a GitHub token</h3>
+        </div>
+        <span class="badge">Setup</span>
+      </div>
+      <p style="margin-top: var(--s-4); color: var(--text-2);">
+        This section renders live contributions, languages and repository stats as soon as a
+        read-only GitHub token is configured. Add <code>GITHUB_TOKEN</code> to your
+        <code>.env</code> (see <code>.env.example</code>) and reload.
+      </p>
+      <ul class="highlight-list">
+        <li>Create a classic token with <strong>read:user</strong> and <strong>repo</strong> scopes (repo is only used for the private-repo count).</li>
+        <li>The token stays server-side — it is never sent to the browser.</li>
+        <li>Until then, the rest of the page works exactly as normal.</li>
+      </ul>
+      {% if content.socials.github %}
+      <p style="margin-top: var(--s-5);">
+        <a class="btn btn--ghost btn--small" href="{{ content.socials.github }}" target="_blank" rel="noopener">View GitHub profile</a>
+      </p>
+      {% endif %}
+    </div>
+
+    {% if github.featured %}
+    <div class="gh-repos" style="margin-top: var(--s-5);">
+      {% for repo in github.featured %}
+      <a class="repo-card" href="{{ repo.url }}" target="_blank" rel="noopener">
+        <span class="repo-card__name">{{ repo.name }}</span>
+        <p class="repo-card__desc">{{ repo.description or "" }}</p>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+</section>

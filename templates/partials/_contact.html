@@ -1,0 +1,75 @@
+<section class="section" id="contact" aria-label="Contact">
+  <div class="section__inner contact">
+    <div class="contact__intro reveal">
+      <p class="section__eyebrow">09 — Contact</p>
+      <h2 class="section__title">Start a project</h2>
+      <p class="section__lead" style="margin-bottom: var(--s-5);">
+        A detection model, a geospatial pipeline, an LLM feature — send the details and I'll get back to you.
+      </p>
+      <p class="contact__direct">
+        Or email directly: <a href="mailto:{{ content.email }}">{{ content.email }}</a>
+      </p>
+      <div style="display: flex; gap: var(--s-3); margin-top: var(--s-5); flex-wrap: wrap;">
+        {% if content.socials.github %}
+        <a class="btn btn--ghost btn--small" href="{{ content.socials.github }}" target="_blank" rel="noopener">GitHub</a>
+        {% endif %}
+        {% if content.socials.linkedin %}
+        <a class="btn btn--ghost btn--small" href="{{ content.socials.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <form class="contact-form glass card reveal reveal--right" id="contact-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field field--honeypot" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="name">Name*</label>
+        <input type="text" id="name" name="name" required autocomplete="name">
+        <span class="field__error" data-error-for="name"></span>
+      </div>
+
+      <div class="field">
+        <label for="email">Email*</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+        <span class="field__error" data-error-for="email"></span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="project_type">Project type*</label>
+          <select id="project_type" name="project_type" required>
+            <option value="" disabled selected>Choose one</option>
+            <option value="ai">AI / ML</option>
+            <option value="geospatial">Geospatial</option>
+            <option value="software">Web / Software</option>
+            <option value="consulting">Consulting</option>
+            <option value="other">Other</option>
+          </select>
+          <span class="field__error" data-error-for="project_type"></span>
+        </div>
+
+        <div class="field">
+          <label for="budget">Budget <span class="field__optional">(optional)</span></label>
+          <input type="text" id="budget" name="budget" placeholder="e.g. $2,000&ndash;5,000">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="message">Message*</label>
+        <textarea id="message" name="message" rows="5" required></textarea>
+        <span class="field__error" data-error-for="message"></span>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--full" id="contact-submit">
+        <span class="btn__label">Send message</span>
+        <span class="btn__spinner" hidden aria-hidden="true"></span>
+      </button>
+
+      <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>

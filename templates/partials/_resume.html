@@ -1,0 +1,42 @@
+<section class="section" id="resume" aria-label="Résumé">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">07 — R&eacute;sum&eacute;</p>
+      <h2 class="section__title">The one-page version</h2>
+      <p class="section__lead">Read it here, or take it with you.</p>
+    </div>
+
+    <div class="resume-grid">
+      <div class="glass card reveal">
+        <p class="card__label">Summary</p>
+        <p style="color: var(--text-2);">{{ content.resume.summary }}</p>
+
+        {% if content.resume.highlights %}
+        <p class="card__label" style="margin-top: var(--s-5);">Highlights</p>
+        <ul class="highlight-list">
+          {% for item in content.resume.highlights %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+
+        <div style="display: flex; gap: var(--s-3); flex-wrap: wrap; margin-top: var(--s-6);">
+          <a class="btn btn--primary btn--small" href="{{ url_for('static', filename=content.resume_pdf) }}" download>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></svg>
+            Download r&eacute;sum&eacute;
+          </a>
+          {% if content.socials.linkedin %}
+          <a class="btn btn--ghost btn--small" href="{{ content.socials.linkedin }}" target="_blank" rel="noopener">LinkedIn profile</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="resume-viewer reveal reveal--right">
+        <object data="{{ url_for('static', filename=content.resume_pdf) }}" type="application/pdf" aria-label="Résumé PDF preview">
+          <div class="resume-fallback">
+            <p>This browser can't display the PDF inline.</p>
+            <a class="btn btn--primary btn--small" href="{{ url_for('static', filename=content.resume_pdf) }}" download>Download r&eacute;sum&eacute;</a>
+          </div>
+        </object>
+      </div>
+    </div>
+  </div>
+</section>

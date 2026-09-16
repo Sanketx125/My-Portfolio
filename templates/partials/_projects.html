@@ -1,0 +1,53 @@
+<section class="section" id="projects" aria-label="Projects">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">03 — Projects</p>
+      <h2 class="section__title">Things I've designed and shipped</h2>
+      <p class="section__lead">Production geospatial and computer-vision systems — each one built to solve a real survey or analysis problem.</p>
+    </div>
+
+    <div class="filter-bar reveal" role="group" aria-label="Filter projects by category">
+      <button type="button" class="filter-btn is-active" data-filter="all">All</button>
+      <button type="button" class="filter-btn" data-filter="ai">AI</button>
+      <button type="button" class="filter-btn" data-filter="geospatial">Geospatial</button>
+      <button type="button" class="filter-btn" data-filter="software">Software</button>
+    </div>
+
+    <div class="project-grid" id="project-grid">
+      {% for project in content.projects %}
+      <article class="project-card reveal" id="project-{{ loop.index0 }}"
+               data-category="{{ project.category }}" data-project-index="{{ loop.index0 }}"
+               style="--i: {{ loop.index0 }};">
+        <div class="project-card__visual project-card__visual--{{ project.category }}" aria-hidden="true">
+          {% if project.image %}<img src="{{ url_for('static', filename=project.image) }}" alt="">{% endif %}
+        </div>
+        <div class="project-card__body">
+          <div class="project-card__top">
+            <span class="project-card__category">{{ project.category }}</span>
+            {% if project.location %}
+            <span class="project-card__loc">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              {{ project.location }}
+            </span>
+            {% endif %}
+          </div>
+
+          <h3>{{ project.title }}</h3>
+          <p class="project-card__desc">{{ project.description }}</p>
+          <p class="project-card__detail" hidden>{{ project.detail }}</p>
+
+          <ul class="chip-list chip-list--small">
+            {% for tech in project.stack %}<li class="chip">{{ tech }}</li>{% endfor %}
+          </ul>
+
+          <div class="project-card__actions">
+            <button type="button" class="link-btn" data-expand>Read more</button>
+            {% if project.github %}<a href="{{ project.github }}" class="link-btn" target="_blank" rel="noopener">Code</a>{% endif %}
+            {% if project.live_url %}<a href="{{ project.live_url }}" class="link-btn" target="_blank" rel="noopener">Live</a>{% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
