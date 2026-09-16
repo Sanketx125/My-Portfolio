@@ -24,7 +24,7 @@
     let id = null;
     try { id = sessionStorage.getItem(SESSION_KEY); } catch (e) { /* ignore */ }
     if (!id) {
-      id = "sess-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      id = crypto.randomUUID();
       try { sessionStorage.setItem(SESSION_KEY, id); } catch (e) { /* ignore */ }
     }
     return id;
@@ -207,7 +207,7 @@
     showTyping();
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await window.PortfolioAPI.request("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, session_id: getSessionId(), mode: mode }),

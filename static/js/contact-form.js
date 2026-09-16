@@ -55,7 +55,8 @@
     setLoading(true);
 
     try {
-      const res = await fetch("/api/contact", {
+      data.request_id = crypto.randomUUID();
+      const res = await window.PortfolioAPI.request("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

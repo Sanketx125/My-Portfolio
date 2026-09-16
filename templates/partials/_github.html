@@ -138,20 +138,11 @@
       <div class="project-card__top">
         <div>
           <p class="card__label" style="margin: 0;">Live dashboard</p>
-          <h3 class="card__title" style="margin: var(--s-2) 0 0;">Waiting on a GitHub token</h3>
+          <h3 class="card__title" style="margin: var(--s-2) 0 0;">Projects and open-source work</h3>
         </div>
-        <span class="badge">Setup</span>
+        <span class="badge">GitHub</span>
       </div>
-      <p style="margin-top: var(--s-4); color: var(--text-2);">
-        This section renders live contributions, languages and repository stats as soon as a
-        read-only GitHub token is configured. Add <code>GITHUB_TOKEN</code> to your
-        <code>.env</code> (see <code>.env.example</code>) and reload.
-      </p>
-      <ul class="highlight-list">
-        <li>Create a classic token with <strong>read:user</strong> and <strong>repo</strong> scopes (repo is only used for the private-repo count).</li>
-        <li>The token stays server-side — it is never sent to the browser.</li>
-        <li>Until then, the rest of the page works exactly as normal.</li>
-      </ul>
+      <p style="margin-top: var(--s-4); color: var(--text-2);">Explore my repositories below. Live activity is temporarily unavailable.</p>
       {% if content.socials.github %}
       <p style="margin-top: var(--s-5);">
         <a class="btn btn--ghost btn--small" href="{{ content.socials.github }}" target="_blank" rel="noopener">View GitHub profile</a>
