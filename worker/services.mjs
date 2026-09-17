@@ -58,7 +58,7 @@ export class AIService {
       const reply = result.choices?.[0]?.message?.content;
       if (typeof reply !== 'string' || !reply.trim() || reply.length > 10000) throw new HttpError(502, 'The assistant returned an invalid answer.');
       await this.store.saveChat(id, message, reply.trim());
-      return {reply: reply.trim(), session_id: id};
+      return {reply: reply.trim()};
     } finally {
       await this.store.release(`chat:${id}`, owner);
       if (slot) await this.store.release(slot, owner);

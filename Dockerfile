@@ -1,16 +1,21 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    FLASK_ENV=production
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+RUN useradd --create-home --uid 10001 portfolio
 
-RUN mkdir -p /app/instance
+COPY --chown=portfolio:portfolio . .
+
+RUN mkdir -p /app/instance && chown portfolio:portfolio /app/instance
+
+USER portfolio
 
 EXPOSE 5000
 

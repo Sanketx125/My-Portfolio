@@ -1,0 +1,10 @@
+[project]
+name = "portfolio-python-spike"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "Flask==3.0.3", "Flask-SQLAlchemy==3.1.1", "Flask-Limiter==3.8.0",
+  "python-dotenv==1.0.1", "requests==2.32.3", "gunicorn==22.0.0"
+]
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]

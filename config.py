@@ -6,9 +6,13 @@ load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-key-change-me")
-    ENV = os.environ.get("FLASK_ENV", "production")
+    ENV = os.environ.get("FLASK_ENV", "development")
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-key-change-me" if ENV == "development" else "")
     DEBUG = ENV == "development"
+    MAX_CONTENT_LENGTH = 16 * 1024
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Strict"
+    SESSION_COOKIE_SECURE = ENV != "development"
 
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "sqlite:///portfolio.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False

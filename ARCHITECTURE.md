@@ -1,6 +1,6 @@
 # Deployment architecture decision
 
-Decision date: 2026-09-16. Implementation and live acceptance are separate gates.
+Decision date: 2026-09-17. Implementation and live acceptance are separate gates.
 
 | Architecture | GitHub deploy | Frontend / runtime / secrets | Persistence | AI / mail / GitHub | No card | Free / sleep / cold start | Decision |
 |---|---|---|---|---|---|---|---|
@@ -10,7 +10,22 @@ Decision date: 2026-09-16. Implementation and live acceptance are separate gates
 | Render Flask + external DB | Native GitHub or CI | Flask, environment secrets | Free local disk ephemeral; Render DB expires | HTTP yes; SMTP ports blocked | Signup not verified | 750 instance hours; idle spin-down | Rejected for persistence and sleeping behavior |
 | Vercel Hobby + external DB | Native GitHub or CI | Static + Python functions; secrets | External | HTTPS supported | Signup not verified | Hobby quotas, cold starts possible | Noncommercial restriction unsuitable for consulting inquiries |
 
-Selected: preserve Python/Jinja sources, build public assets without importing app/config or loading .env, deploy assets and JavaScript API together. SQLite and SMTP remain local adapters. Production uses D1 and Brevo HTTPS. Existing prompt builders and GitHub query are exported at build time into the private Worker bundle. No credentials are used during build. The browser uses one API client. Production uses same-origin requests and an HttpOnly session cookie; session IDs supplied by a visitor do not grant access to other histories.
+The investigated platforms were checked against the operational requirements:
+
+| Platform | Compute, memory, traffic | Sleep/cold start | Durable data | Network/email | Secrets and GitHub | Domain/TLS and use boundary |
+|---|---|---|---|---|---|---|
+| GitHub Pages | Static only; 100 GB/month soft bandwidth limit and ten builds/hour | No application process | None | No server-side outbound calls or email | Actions can deploy, but Pages cannot hold runtime API secrets | Custom domains and HTTPS; cannot provide this application's dynamic backend |
+| Cloudflare Workers Free | 100k requests/day, 10 ms CPU/invocation, 128 MB, 50 external subrequests; static assets free/unlimited | Isolates can cold start; no sleeping server or persistent process | D1: 500 MB/database and 5 GB/account; daily row quotas; seven-day Time Travel | Outbound HTTPS supported; production uses Brevo HTTPS rather than SMTP | Encrypted Worker secrets; GitHub Actions deploy with narrow API token | `workers.dev` and custom domains with TLS; public/business Turnstile use documented; account/geographic approval untested |
+| Python Workers Free | Same platform limits; Pyodide/WSGI overhead not measured in this environment | Beta runtime and package initialization add uncertainty | D1 requires an async binding adapter; SQLite filesystem is ephemeral | Current `requests`/SMTP code must become async HTTP/FFI | Same Worker secret/deploy model | Same Cloudflare boundary; rejected on maturity and unmeasured CPU rather than feature absence |
+| Render Free | 0.1 CPU, 512 MB, 750 instance-hours/month; bandwidth shares workspace allowance | Sleeps after 15 idle minutes; documented spin-up around one minute; may restart anytime | Local disk ephemeral; free Postgres is 1 GB and expires after 30 days | Outbound HTTPS works; SMTP ports 25/465/587 blocked | Environment variables and Git-connected deploys supported | Custom domains/TLS; docs say Free is not for production applications; signup/card/geography untested |
+| Vercel Hobby | Monthly function/transfer/build quotas; Functions currently document 2 GB/1 vCPU | Serverless cold-start behavior varies | Requires another database service | Outbound HTTPS supported; email would still need an HTTPS provider | Environment secrets and Git integration supported | Custom domains/HTTPS, but Hobby is restricted to noncommercial personal use; unsuitable for consulting inquiries |
+
+No candidate supplies an LLM allowance. The selected runtime prevents unlimited
+calls, but the chosen model/provider must independently fit the owner's ₹0
+constraint or existing credit. GitHub Actions runs finite build/deploy jobs and
+is never used as a web server. Codespaces is not part of production.
+
+Selected: preserve Python/Jinja sources, build public assets without importing app/config or loading .env, deploy assets and JavaScript API together. SQLite and SMTP remain local adapters. Production uses D1 and Brevo HTTPS. Existing prompt builders and GitHub query are exported at build time into the private Worker bundle. No credentials are used during build. The browser uses one API client. Production uses same-origin requests and an HttpOnly session cookie; session IDs supplied by a visitor do not grant access to other histories. The evidence and full runtime matrix are in [PYTHON_WORKER_SPIKE.md](PYTHON_WORKER_SPIKE.md).
 
 ```mermaid
 flowchart TD

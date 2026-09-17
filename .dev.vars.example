@@ -1,0 +1,9 @@
+# Copy to .dev.vars for local Worker development. Never commit the copy.
+SESSION_SECRET=
+TURNSTILE_SECRET_KEY=
+LLM_API_KEY=
+GITHUB_TOKEN=
+GITHUB_TOKEN_2=
+BREVO_API_KEY=
+MAIL_FROM=
+CONTACT_TO_EMAIL=

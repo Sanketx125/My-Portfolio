@@ -12,11 +12,12 @@ from flask import Blueprint, request, jsonify, current_app
 from extensions import limiter
 from models import db, ChatMessage
 from content import CONTENT
+from services.contract import CHAT_MESSAGE_LIMIT, HISTORY_TURNS as CONTRACT_HISTORY_TURNS
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/api")
 
-MAX_MESSAGE_LENGTH = 800
-HISTORY_TURNS = 10  # last N user+assistant turns kept per session
+MAX_MESSAGE_LENGTH = CHAT_MESSAGE_LIMIT
+HISTORY_TURNS = CONTRACT_HISTORY_TURNS
 VALID_MODES = {"default", "recruiter"}
 PITCH_SENTINEL = "__pitch__"
 
@@ -66,14 +67,23 @@ def _call_llm(messages):
 @chat_bp.route("/chat", methods=["POST"])
 @limiter.limit("10 per minute")
 def chat():
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "A JSON object is required."}), 400
 
-    mode = (payload.get("mode") or "default").strip().lower()
+    raw_mode = payload.get("mode") or "default"
+    raw_message = payload.get("message") or ""
+    raw_role = payload.get("role") or ""
+    if not all(isinstance(value, str) for value in (raw_mode, raw_message, raw_role)):
+        return jsonify({"error": "Invalid chat request."}), 400
+    mode = raw_mode.strip().lower()
     if mode not in VALID_MODES:
         mode = "default"
 
-    message = (payload.get("message") or "").strip()
-    role_hint = (payload.get("role") or "").strip()[:80]
+    message = raw_message.strip()
+    role_hint = raw_role.strip()
+    if len(role_hint) > 80:
+        return jsonify({"error": "Role is too long."}), 400
 
     # One-click "pitch me" requests: the client sends the sentinel (optionally
     # followed by a target role), or just an empty message in recruiter mode.

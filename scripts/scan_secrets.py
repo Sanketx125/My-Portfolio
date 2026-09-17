@@ -24,7 +24,9 @@ def known_secrets():
 
 def main():
     public = '--public' in sys.argv
-    paths = [ROOT / p for p in subprocess.check_output(['git', 'ls-files'], cwd=ROOT, text=True).splitlines()]
+    paths = [ROOT / p for p in subprocess.check_output(
+        ['git', 'ls-files', '--cached', '--others', '--exclude-standard'], cwd=ROOT, text=True
+    ).splitlines()]
     if public:
         paths = [p for p in (ROOT / 'dist').rglob('*') if p.is_file()]
         if not paths: raise SystemExit('Missing public build')
@@ -35,8 +37,25 @@ def main():
         data = p.read_bytes()
         if any(re.search(pattern, data) for pattern in PATTERNS) or any(value in data for value in secrets) or (public and any(name in data for name in PUBLIC_NAMES)):
             failed.append(str(p.relative_to(ROOT)))
-        if p.name == '.env' or p.suffix in {'.db', '.sqlite', '.sqlite3'} or p.name.startswith('.dev.vars'):
+        if (p.name == '.env' or p.suffix in {'.db', '.sqlite', '.sqlite3'}
+                or (p.name.startswith('.dev.vars') and p.name != '.dev.vars.example')):
             failed.append(str(p.relative_to(ROOT)))
+    if not public:
+        # Scan every committed blob as well as the current tree. Never emit a
+        # matching line or value: a historical credential must be rotated.
+        seen = set()
+        objects = subprocess.check_output(['git', 'rev-list', '--objects', '--all'], cwd=ROOT, text=True)
+        for entry in objects.splitlines():
+            object_id, _, historical_path = entry.partition(' ')
+            if not historical_path or object_id in seen:
+                continue
+            seen.add(object_id)
+            kind = subprocess.run(['git', 'cat-file', '-t', object_id], cwd=ROOT, capture_output=True, text=True)
+            if kind.returncode or kind.stdout.strip() != 'blob':
+                continue
+            data = subprocess.check_output(['git', 'cat-file', '-p', object_id], cwd=ROOT)
+            if any(re.search(pattern, data) for pattern in PATTERNS) or any(value in data for value in secrets):
+                failed.append(f'history:{historical_path}')
     if failed:
         print('Potential secret/data exposure in files:', ', '.join(sorted(set(failed))))
         raise SystemExit(1)

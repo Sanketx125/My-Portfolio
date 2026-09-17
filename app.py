@@ -1,6 +1,6 @@
 """Flask app factory."""
 import os
-from flask import Flask
+from flask import Flask, jsonify, request
 
 from config import Config
 from models import db
@@ -10,6 +10,8 @@ from extensions import limiter
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    if not app.config.get("SECRET_KEY"):
+        raise RuntimeError("FLASK_SECRET_KEY is required outside development")
 
     db.init_app(app)
     limiter.init_app(app)
@@ -28,13 +30,36 @@ def create_app(config_class=Config):
         db.create_all()
 
     @app.after_request
-    def set_cors_headers(response):
-        origin = app.config.get("ALLOWED_ORIGIN", "*")
+    def set_security_headers(response):
+        allowed = app.config.get("ALLOWED_ORIGIN", "*")
+        origin = request.headers.get("Origin")
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        if origin and origin != "*":
-            response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; "
+            "form-action 'self'; script-src 'self' 'unsafe-inline' "
+            "https://cdnjs.cloudflare.com https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
+            "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: "
+            "https://*.basemaps.cartocdn.com https://avatars.githubusercontent.com; "
+            "connect-src 'self'; object-src 'self'"
+        )
+        if app.config.get("ENV") != "development":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        if allowed != "*" and origin == allowed:
+            response.headers["Access-Control-Allow-Origin"] = allowed
+            response.headers.add("Vary", "Origin")
         return response
+
+    @app.errorhandler(413)
+    @app.errorhandler(429)
+    def api_request_error(error):
+        if request.path.startswith("/api/"):
+            message = "Request too large." if error.code == 413 else "Too many requests. Please wait."
+            return jsonify({"error": message}), error.code
+        return error
 
     return app
 
