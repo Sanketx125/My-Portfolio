@@ -102,9 +102,12 @@ Merge or push the deployment branch to `main`. The production workflow will:
 6. deploy static assets and the API Worker;
 7. run read-only checks against the production URL.
 
-The first deployment can complete before external service secrets are present.
-The page and fallback GitHub section will render, while contact verification and
-AI return safe unavailable errors until step 4 is complete.
+The first run is a bootstrap deployment. It can create the Worker and D1 schema
+before runtime secrets exist, but its final `/api/github` smoke check will fail
+closed until `SESSION_SECRET` is installed. This one-time red workflow is
+expected: set the runtime secrets in step 4, then rerun **Deploy production**.
+The rerun must finish green before launch. Contact and AI return safe unavailable
+errors until their own provider secrets are configured.
 
 ## 4. Set runtime secrets in Cloudflare
 
