@@ -23,7 +23,7 @@ Official Cloudflare documentation confirms Flask and WSGI are supported. Native 
 
 These are Windows CPython wall-clock measurements. They exclude Pyodide startup, WSGI bridging, D1, and external fetches. They are useful compatibility checks and are **not Cloudflare CPU measurements**.
 
-`pywrangler` 1.17.3 reached creation of its CPython 3.13.2 Emscripten/Pyodide environment, then required `xbuildenv-0.29.4.tar.gz`. The sandbox blocked that download. The automatic approval service rejected an unsandboxed run because the workspace had no approval credits. Consequently, a Cloudflare/Pyodide route run and DevTools CPU profile were not obtained. The repository does not claim otherwise.
+`pywrangler` 1.17.3 downloaded its CPython 3.13.2 Emscripten/Pyodide runtime. The first setup attempt exposed a stale `uv` binary on `PATH`; pinning the isolated environment to the required `uv` 0.12.3 fixed that precondition. Environment creation then failed inside the downloaded Windows Pyodide CLI with `ReferenceError: require is not defined` while `uv` queried the interpreter. Repeating with both the uv cache and Python installation rooted inside the ignored spike directory produced the same runtime failure. Consequently, a Cloudflare/Pyodide route run and DevTools CPU profile were not obtained. The repository does not claim otherwise.
 
 ## Dependency classification
 
