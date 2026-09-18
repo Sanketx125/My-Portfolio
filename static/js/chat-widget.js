@@ -16,6 +16,7 @@
   const STORAGE_KEY = "portfolio_chat_history";
   const SESSION_KEY = "portfolio_chat_session_id";
   const PITCH_SENTINEL = "__pitch__";
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let mode = "default";
 
@@ -43,45 +44,128 @@
 
   let history = loadHistory();
 
-  /* ---------- Safe mini-markdown (escape first, then add structure) ---------- */
+  /* ---------- Safe, robust mini-markdown (escape first, then add structure) ---------- */
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
 
-  function inline(text) {
-    return text
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  function formatInline(raw) {
+    // 1. Code spans first: `code`
+    let text = raw.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    // 2. Colon after bold: **something**: or **something** :
+    text = text.replace(/\*\*([^*]+)\*\*\s*:/g, "<strong>$1</strong>:");
+
+    // 3. Complete bold pairs: **bold**
+    text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+    // 4. Dangling trailing **: before colon (repair LLM missing opening ** bug)
+    text = text.replace(/(^|[\s(])([a-zA-Z0-9_-]+)\*\*:/g, "$1<strong>$2</strong>:");
+    // Clean up any remaining lone unmatched ** tokens
+    text = text.replace(/\*\*/g, "");
+
+    // 5. Markdown links. Parse the destination before emitting any href.
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, label, href) {
+      const value = href.trim();
+      const allowedFragment = /^#(?:projects|experience|recognition)$/.test(value);
+      const allowedScheme = /^(?:https?:|mailto:)/i.test(value);
+      if (!allowedFragment && !allowedScheme) return label;
+      const external = /^https?:/i.test(value);
+      return '<a href="' + value + '"' + (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + label + '</a>';
+    });
+
+    // 6. Bare links: http(s) only.
+    text = text.replace(/(^|[\s(])(https?:\/\/[^\s<"']+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+
+    return text;
   }
 
   function markdownToHtml(text) {
-    const lines = escapeHtml(text).split(/\r?\n/);
-    let html = "";
-    let listType = null;
+    if (!text || typeof text !== "string") return "<p></p>";
 
-    function closeList() {
-      if (listType) { html += "</" + listType + ">"; listType = null; }
+    // Escape all raw HTML first to guarantee that no script or tag executes
+    const safeText = escapeHtml(text);
+
+    // Handle code blocks ```lang ... ```
+    const codeBlocks = [];
+    const textWithoutBlocks = safeText.replace(/```([a-zA-Z0-9_-]*)\r?\n([\s\S]*?)```/g, function (_, lang, code) {
+      const idx = codeBlocks.length;
+      codeBlocks.push(`<pre><code class="code-block">${code.trim()}</code></pre>`);
+      return `@@CODE_BLOCK_${idx}@@`;
+    });
+
+    const lines = textWithoutBlocks.split(/\r?\n/);
+    let html = "";
+    let listStack = [];
+
+    function closeListsToLevel(level) {
+      while (listStack.length > level) {
+        const item = listStack.pop();
+        html += `</li></${item.type}>`;
+      }
+    }
+
+    function closeAllLists() {
+      closeListsToLevel(0);
     }
 
     lines.forEach(function (line) {
-      const trimmed = line.trim();
-      const bullet = trimmed.match(/^[-*]\s+(.*)$/);
-      const numbered = trimmed.match(/^\d+\.\s+(.*)$/);
-
-      if (bullet || numbered) {
-        const wanted = bullet ? "ul" : "ol";
-        if (listType !== wanted) { closeList(); html += "<" + wanted + ">"; listType = wanted; }
-        html += "<li>" + inline((bullet || numbered)[1]) + "</li>";
+      const codeMatch = line.trim().match(/^@@CODE_BLOCK_(\d+)@@$/);
+      if (codeMatch) {
+        closeAllLists();
+        html += codeBlocks[Number(codeMatch[1])];
         return;
       }
-      closeList();
-      if (trimmed) html += "<p>" + inline(trimmed) + "</p>";
+
+      const h3Match = line.match(/^###\s+(.*)$/);
+      const h2Match = line.match(/^##\s+(.*)$/);
+      const h1Match = line.match(/^#\s+(.*)$/);
+      if (h3Match || h2Match || h1Match) {
+        closeAllLists();
+        const content = formatInline((h3Match || h2Match || h1Match)[1]);
+        const tag = h3Match ? "h4" : "h3";
+        html += `<${tag} class="chat-heading">${content}</${tag}>`;
+        return;
+      }
+
+      const bulletMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
+      const numMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+
+      if (bulletMatch || numMatch) {
+        const match = bulletMatch || numMatch;
+        const indent = match[1].length;
+        const type = bulletMatch ? "ul" : "ol";
+        const content = formatInline(match[3]);
+        const level = Math.floor(indent / 2) + 1;
+
+        if (listStack.length < level) {
+          html += `<${type}><li>${content}`;
+          listStack.push({ type: type, level: level });
+        } else if (listStack.length > level) {
+          closeListsToLevel(level);
+          html += `</li><li>${content}`;
+        } else {
+          if (listStack[listStack.length - 1].type !== type) {
+            closeListsToLevel(level - 1);
+            html += `<${type}><li>${content}`;
+            listStack.push({ type: type, level: level });
+          } else {
+            html += `</li><li>${content}`;
+          }
+        }
+        return;
+      }
+
+      closeAllLists();
+      const trimmed = line.trim();
+      if (trimmed) {
+        html += `<p>${formatInline(trimmed)}</p>`;
+      }
     });
 
-    closeList();
+    closeAllLists();
     return html || "<p></p>";
   }
 
@@ -96,10 +180,38 @@
     return bubble;
   }
 
+  function renderAssistantReply(text) {
+    if (reduceMotion) return Promise.resolve(renderBubble("assistant", text));
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bubble--assistant is-typing";
+    bubble.setAttribute("aria-busy", "true");
+    messagesEl.appendChild(bubble);
+    let index = 0;
+    const delay = Math.max(6, Math.min(18, Math.floor(2600 / Math.max(text.length, 1))));
+    return new Promise(function (resolve) {
+      function step() {
+        index = Math.min(index + 2, text.length);
+        bubble.textContent = text.slice(0, index);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        if (index < text.length) {
+          setTimeout(step, delay);
+        } else {
+          bubble.innerHTML = markdownToHtml(text);
+          bubble.classList.remove("is-typing");
+          bubble.removeAttribute("aria-busy");
+          resolve(bubble);
+        }
+      }
+      step();
+    });
+  }
+
   function renderWelcome() {
     const lead = mode === "recruiter"
       ? "Recruiter mode on. I'll make the case for hiring Sanket — ask about fit for a role, or hit the pitch button below."
-      : "Hi! Ask me anything about Sanket's background, skills, or projects.";
+      : (mode === "jd_match"
+        ? "Paste JD mode on. Share a job description or list of requirements and I'll generate a verified fit assessment."
+        : "Hi! Ask me anything about Sanket's background, skills, or projects.");
     renderBubble("assistant", lead);
   }
 
@@ -169,7 +281,9 @@
     });
     input.placeholder = next === "recruiter"
       ? "Ask about fit for a role..."
-      : "Ask about my work...";
+      : (next === "jd_match"
+        ? "Paste job description or requirements..."
+        : "Ask about my work...");
     if (!history.length) replay();
   }
 
@@ -186,6 +300,21 @@
 
   window.addEventListener("chat:open", openPanel);
   window.addEventListener("chat:open-pitch", openPitch);
+
+  window.addEventListener("chat:ask", function (e) {
+    if (e.detail && e.detail.message) {
+      openPanel();
+      sendMessage(e.detail.message);
+    }
+  });
+
+  window.addEventListener("chat:jd-match", function (e) {
+    if (e.detail && e.detail.jd) {
+      setMode("jd_match");
+      openPanel();
+      sendMessage(e.detail.jd, "Evaluate Job Description Fit");
+    }
+  });
 
   document.querySelectorAll("[data-open-pitch]").forEach(function (btn) {
     btn.addEventListener("click", openPitch);
@@ -220,9 +349,9 @@
         return;
       }
 
-      renderBubble("assistant", data.reply);
       history.push({ role: "assistant", content: data.reply });
       saveHistory();
+      await renderAssistantReply(data.reply);
     } catch (err) {
       hideTyping();
       renderBubble("error", "Couldn't reach the assistant right now — please use the contact form below.");

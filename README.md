@@ -31,7 +31,7 @@ flowchart LR
 |---|---|
 | Portfolio UI | Jinja partials, hand-written CSS, responsive bento layout |
 | Motion | Self-hosted GSAP and ScrollTrigger, with reduced-motion support |
-| Map | Self-hosted Leaflet client and CARTO tiles |
+| Map | Self-hosted Leaflet client and OpenStreetMap tiles |
 | Navigation | Ctrl/Cmd+K command palette, mobile menu, internal anchors |
 | Theme | Dark/light mode persisted in local storage |
 | Contact | Validation, honeypot, Turnstile, D1 persistence, durable email outbox |

@@ -6,8 +6,7 @@
 <title>{{ content.name }} — {{ content.title }}</title>
 <meta name="description" content="{{ content.tagline }}">
 <meta name="author" content="{{ content.name }}">
-<meta name="theme-color" content="#06080B" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#F5F7F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#06080B">
 <link rel="canonical" href="{{ request.url_root }}">
 
 <!-- Open Graph -->
@@ -71,6 +70,8 @@
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/command-palette.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
+<script>window.VERIFIED_CAPABILITIES = Object.freeze({{ content.verified_capabilities | tojson }});</script>
+<script src="{{ url_for('static', filename='js/portfolio-intelligence.js') }}"></script>
 <script src="{{ url_for('static', filename='js/contact-form.js') }}"></script>
 </body>
 </html>

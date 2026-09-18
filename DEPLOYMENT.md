@@ -52,10 +52,8 @@ There is no uptime SLA on the selected free services.
    for Cloudflare secret entry.
 6. Create an LLM API key with the smallest available budget and permissions.
    The runtime expects an HTTPS OpenAI-compatible `/chat/completions` API.
-7. Optional: create a GitHub token for the dashboard. Grant only the read access
-   required for the selected account. Private repository names are never queried;
-   only `totalCount` is requested. A public-only token is preferable if the
-   private count is unnecessary.
+7. Optional: create a GitHub token for the dashboard. Grant only public-profile
+   read access. Private repositories are not queried and must not be granted.
 
 ## 2. Configure GitHub
 
@@ -74,8 +72,12 @@ Add these **production environment variables**:
 For a `workers.dev` deployment, `SITE_URL` normally has the form
 `https://sanket-portfolio.<account-subdomain>.workers.dev`.
 
-Create a narrow Cloudflare API token for CI. Scope it to this account with
-Workers Scripts edit and D1 edit access. Add these **production environment
+Create a narrow Cloudflare API token for CI. Select only the required account
+under **Account Resources** and grant exactly **Workers Scripts: Edit** and
+**D1: Edit**. Do not grant zone permissions, user permissions, Workers KV,
+R2, account-wide administrator access, or use the Global API Key. D1 token
+permissions are account-scoped, so use a dedicated deployment account where
+practical. Add these **production environment
 secrets**:
 
 | Secret | Value |
@@ -158,7 +160,7 @@ Then complete these manual checks from a normal and a private browser window:
 
 - load the homepage at desktop and mobile widths; inspect the browser console;
 - verify GSAP/ScrollTrigger motion and reduced-motion behavior;
-- open the map, filter projects, open Ctrl/Cmd+K, toggle the theme, and download
+- open the map, filter projects, open Ctrl/Cmd+K, and download
   the résumé;
 - submit one real contact, confirm the success response, both emails, and the D1
   contact/outbox records;

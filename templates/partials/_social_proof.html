@@ -1,0 +1,63 @@
+<section class="section" id="social-proof" aria-label="Social Proof">
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">05 — Social Proof</p>
+      <h2 class="section__title">Verified Reach &amp; Community Impact</h2>
+      <p class="section__lead">
+        Professional network reach, active technical mentorship, and verified production deployment track record.
+      </p>
+    </div>
+
+    <!-- LinkedIn Reach & Professional Impact -->
+    {% if content.social_proof and content.social_proof.linkedin %}
+    {% set li = content.social_proof.linkedin %}
+    <div class="social-proof-grid">
+      <div class="glass card reveal social-card">
+        <div class="social-card__top">
+          <div class="social-card__id">
+            <span class="social-card__icon social-card__icon--li" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45c-.9 0-1.63.73-1.63 1.63 0 .9.73 1.63 1.63 1.63.9 0 1.63-.73 1.63-1.63 0-.9-.73-1.63-1.63-1.63Z"/></svg>
+            </span>
+            <div>
+              <p class="card__label" style="margin: 0;">Social Proof · LinkedIn Reach</p>
+              <h3 class="card__title" style="margin: 2px 0 0; font-size: var(--fs-base);">{{ li.headline }}</h3>
+            </div>
+          </div>
+          <a class="btn btn--small btn--ghost" href="{{ li.url }}" target="_blank" rel="noopener" aria-label="Connect with Sanket on LinkedIn">
+            Connect
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+        </div>
+
+        <p style="margin: var(--s-3) 0 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.6;">
+          Connect on LinkedIn for technical exchanges on GeoAI, computer vision, and deep learning architectures. Actively mentoring students and collaborating with engineering peers.
+        </p>
+        <div style="margin-top: var(--s-3); display: flex; gap: var(--s-2); flex-wrap: wrap;">
+          <span class="chip chip--accent">Geospatial AI</span>
+          <span class="chip chip--accent">Computer Vision</span>
+          <span class="chip chip--accent">PyTorch &amp; LLMs</span>
+          <span class="chip chip--accent">College Mentorship</span>
+        </div>
+      </div>
+
+      <!-- Verified Production Milestones -->
+      {% if content.social_proof.verified_impact %}
+      <div class="glass card reveal reveal--right impact-card">
+        <p class="card__label">Verified Track Record</p>
+        <div class="impact-grid">
+          {% for item in content.social_proof.verified_impact %}
+          <div class="impact-item">
+            <span class="impact-item__metric">{{ item.metric }}</span>
+            <div class="impact-item__text">
+              <strong>{{ item.label }}</strong>
+              <small>{{ item.context }}</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>

@@ -21,9 +21,17 @@
   const commands = [];
 
   const sectionDefs = [
-    ["About", "#about"], ["Skills", "#skills"], ["Projects", "#projects"],
-    ["Map", "#map"], ["GitHub", "#github"], ["Experience", "#experience"],
-    ["Résumé", "#resume"], ["AI assistant", "#ai-chat"], ["Contact", "#contact"],
+    ["Projects", "#projects"],
+    ["Portfolio Intelligence", "#portfolio-intelligence"],
+    ["Social Proof", "#social-proof"],
+    ["Career", "#career"],
+    ["About", "#about"],
+    ["Skills", "#skills"],
+    ["Map", "#map"],
+    ["GitHub", "#github"],
+    ["Experience", "#experience"],
+    ["Résumé", "#resume"],
+    ["Contact", "#contact"],
   ];
   sectionDefs.forEach(function (def) {
     commands.push({
@@ -67,6 +75,30 @@
 
   const actions = [
     {
+      label: "Match Job Description (Paste JD)",
+      hint: "Recruiter tool",
+      keywords: "paste jd job description match evaluate recruiter fit",
+      run: function () { window.dispatchEvent(new CustomEvent("pi:paste-jd")); },
+    },
+    {
+      label: "View 30-sec Candidate Brief",
+      hint: "Recruiter brief",
+      keywords: "30 sec profile recruiter summary pitch brief",
+      run: function () { window.dispatchEvent(new CustomEvent("pi:open-tab", { detail: { tab: "recruiter" } })); },
+    },
+    {
+      label: "Explore System Architectures (Tech Dive)",
+      hint: "Deep dive",
+      keywords: "tech dive architecture engineering decisions pipeline",
+      run: function () { window.dispatchEvent(new CustomEvent("pi:open-tab", { detail: { tab: "tech-dive" } })); },
+    },
+    {
+      label: "View Code Catalyst Award Recognition",
+      hint: "Career honor",
+      keywords: "code catalyst award recognition nakshatech honor",
+      run: function () { scrollToSelector("#career"); },
+    },
+    {
       label: "Pitch me for a role",
       hint: "AI recruiter mode",
       keywords: "recruiter hire pitch ai",
@@ -103,12 +135,6 @@
           function () { window.portfolioToast && window.portfolioToast(email); }
         );
       },
-    },
-    {
-      label: "Toggle light / dark theme",
-      hint: "appearance",
-      keywords: "theme dark light mode appearance",
-      run: function () { window.portfolioToggleTheme && window.portfolioToggleTheme(); },
     },
   ];
 

@@ -15,7 +15,7 @@ invulnerable.
   in Cloudflare rather than GitHub.
 - D1 contains contact personal data and chat content. Database exports are
   sensitive even when credentials are absent.
-- LLM, Brevo, GitHub, Turnstile, CARTO, Google Fonts, GitHub avatars, Cloudflare,
+- LLM, Brevo, GitHub, Turnstile, OpenStreetMap, Google Fonts, GitHub avatars, Cloudflare,
   and GitHub Actions are external processors or dependencies.
 
 ## Implemented controls
@@ -40,7 +40,7 @@ invulnerable.
 Static responses receive a restrictive CSP and security headers from
 `dist/_headers`. API JSON has its own `default-src 'none'` CSP and no-store
 cache policy. HSTS is enabled in production. External resources allowed by the
-page CSP are limited to Turnstile, Google Fonts, CARTO map tiles, and GitHub
+page CSP are limited to Turnstile, Google Fonts, OpenStreetMap tiles, and GitHub
 avatars.
 
 ## Rate and cost controls

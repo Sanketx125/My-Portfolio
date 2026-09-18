@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import nunjucks from 'nunjucks/browser/nunjucks-slim.js';
 import templateData from '../.generated/github-template.mjs';
-import {AIService, MailService, validateContact} from '../worker/services.mjs';
+import {AIService, MailService, validateCapabilityRegistry, validateContact} from '../worker/services.mjs';
 import {GitHubService} from '../worker/github.mjs';
+import {Store} from '../worker/store.mjs';
 import {HttpError, checkOrigin, rateLimit, readJSON, session, verifyChallenge} from '../worker/security.mjs';
 
 const response = (body, status = 200) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
@@ -28,11 +29,19 @@ test('contact validation enforces the public contract', () => {
   assert.throws(() => validateContact({...valid, message: 'x'.repeat(4001)}), error => Boolean(error.fields.message));
 });
 
+test('verified capability evidence identifiers fail closed', () => {
+  assert.throws(
+    () => validateCapabilityRegistry([{id: 'cap_fake', evidence_ids: ['fact_missing']}], ['fact_real']),
+    /Invalid verified capability evidence/,
+  );
+});
+
 test('request parsing and exact origin checks fail closed', async () => {
   await assert.rejects(readJSON(new Request('https://site.test/api', {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: '{}'})), error => error.status === 415);
   await assert.rejects(readJSON(new Request('https://site.test/api', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{bad'})), error => error.status === 400);
   await assert.rejects(readJSON(new Request('https://site.test/api', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: 'x'.repeat(13000)})})), error => error.status === 413);
   assert.throws(() => checkOrigin(new Request('https://site.test/api', {headers: {Origin: 'https://evil.test', 'Sec-Fetch-Site': 'cross-site'}}), {SITE_URL: 'https://site.test'}), error => error.status === 403);
+  assert.throws(() => checkOrigin(new Request('https://site.test/api'), {SITE_URL: 'https://site.test'}), error => error.status === 403);
 });
 
 test('Turnstile hostname/action and rate limits fail closed', async () => {
@@ -47,6 +56,9 @@ test('signed session cookie is stable and tamper resistant', async () => {
   const env = {SESSION_SECRET: '0'.repeat(32)};
   const first = await session(new Request('https://site.test/api'), env);
   const value = first.cookie.split(';')[0];
+  assert.match(first.cookie, /^__Host-portfolio=/);
+  assert.match(first.cookie, /; Path=\/; HttpOnly; Secure; SameSite=Strict;/);
+  assert.doesNotMatch(first.cookie, /Domain=/i);
   const second = await session(new Request('https://site.test/api', {headers: {Cookie: value}}), env);
   assert.equal(second.id, first.id);
   const tampered = await session(new Request('https://site.test/api', {headers: {Cookie: value.replace(first.id[0], first.id[0] === 'a' ? 'b' : 'a')}}), env);
@@ -65,6 +77,19 @@ test('AI adapter preserves prompt, history, limits, and hides server session id'
   assert.equal(sent.max_tokens, 500);
   assert.match(sent.messages[0].content, /RECRUITER MODE/);
   assert.equal(outbound.headers.Authorization, 'Bearer private-test-value');
+});
+
+test('AI adapter in jd_match mode formats prompt and does not persist JD', async () => {
+  const store = new FakeStore();
+  const env = {LLM_API_KEY: 'private-test-value', LLM_MODEL: 'model', LLM_API_BASE: 'https://llm.test/v1', CHAT_DAILY_BUDGET: '50'};
+  let outbound;
+  const http = async (_url, options) => { outbound = options; return response({choices: [{message: {content: 'Fit assessment'}}]}); };
+  const result = await new AIService(store, env, http).reply({message: 'Python and LiDAR skills', mode: 'jd_match'}, 'private-session');
+  assert.deepEqual(result, {reply: 'Fit assessment'});
+  assert.equal(store.saved.length, 0);
+  const sent = JSON.parse(outbound.body);
+  assert.match(sent.messages[0].content, /Fit Summary/);
+  assert.match(sent.messages.at(-1).content, /Please evaluate/);
 });
 
 test('AI provider failure is bounded and releases its leases', async () => {
@@ -101,12 +126,21 @@ test('GitHub service normalizes, caches, and returns no token', async () => {
   const env = {GITHUB_USERNAME: 'person', GITHUB_TOKEN: 'private-token'};
   const service = new GitHubService(store, env, async () => response({data: {user}}));
   const result = await service.get();
-  assert.equal(result.totals.private_repos, 4);
+  assert.equal(result.totals.followers, 2);
+  assert.equal('private_repos' in result.totals, false);
   assert.equal(result.featured[0].description, '<script>');
   assert.doesNotMatch(JSON.stringify(result), /private-token/);
   assert.ok(store.cacheValue);
   const cached = await new GitHubService(store, env, async () => { throw new Error('network should not run'); }).get();
   assert.deepEqual(cached, result);
+});
+
+test('D1 store binds user values instead of interpolating SQL', async () => {
+  const calls = [];
+  const db = {prepare(sql) { return {bind(...args) { calls.push({sql, args}); return {run: async () => ({})}; }}; }};
+  await new Store(db).run('INSERT INTO example(value) VALUES(?)', "x'); DROP TABLE contacts;--");
+  assert.equal(calls[0].sql, 'INSERT INTO example(value) VALUES(?)');
+  assert.deepEqual(calls[0].args, ["x'); DROP TABLE contacts;--"]);
 });
 
 test('precompiled GitHub template autoescapes API text', () => {

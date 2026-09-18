@@ -129,7 +129,7 @@ def contact():
         _send_notification_email(submission)
         _send_autoreply(submission)
     except Exception:
-        current_app.logger.exception("Failed to send contact email")
+        current_app.logger.warning("Contact email delivery failed")
         # The submission is already saved — don't fail the request over email.
 
     return jsonify({"ok": True, "message": "Thanks — your message is on its way."})

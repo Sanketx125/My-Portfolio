@@ -13,7 +13,7 @@ from xml.sax.saxutils import escape
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from flask import Flask, render_template
-from content import CONTENT
+from content import CONTENT, get_verified_capabilities, get_verified_facts
 from services.prompts import _system_prompt
 from services.contract import CONTACT_LIMITS, PROJECT_TYPES, CHAT_MESSAGE_LIMIT, HISTORY_TURNS
 from services.github import _QUERY
@@ -40,6 +40,9 @@ def build():
                            ("leaflet/dist/leaflet.js", "leaflet.js"),
                            ("leaflet/dist/leaflet.css", "leaflet.css")]:
         shutil.copyfile(ROOT / "node_modules" / source, vendor / target)
+    # Production does not publish source maps; remove vendor discovery hints.
+    for script in vendor.glob("*.js"):
+        script.write_text(re.sub(r"\n?//# sourceMappingURL=.*?(?:\n|$)", "\n", script.read_text(encoding="utf8")), encoding="utf8")
     shutil.copytree(ROOT / "node_modules/leaflet/dist/images", vendor / "images")
     for package in ["gsap", "leaflet", "nunjucks"]:
         for source in (ROOT / "node_modules" / package).glob("*LICENSE*"):
@@ -64,10 +67,12 @@ def build():
     generated.mkdir(exist_ok=True)
     (generated / "portfolio.json").write_text(json.dumps({
         "name": CONTENT["name"], "content": CONTENT,
-        "prompts": {m: _system_prompt(m) for m in ["default", "recruiter"]},
+        "prompts": {m: _system_prompt(m) for m in ["default", "recruiter", "jd_match"]},
         "githubQuery": _QUERY, "fallback": fallback,
         "contactLimits": CONTACT_LIMITS, "projectTypes": PROJECT_TYPES,
         "chatLimit": CHAT_MESSAGE_LIMIT, "historyTurns": HISTORY_TURNS,
+        "verifiedCapabilities": get_verified_capabilities(),
+        "verifiedFactIds": [fact["id"] for fact in get_verified_facts()],
     }, ensure_ascii=False), encoding="utf8")
     # Compile the existing Jinja-compatible GitHub partial, keeping one UI source.
     subprocess.run(["node", "scripts/compile-template.mjs"], cwd=ROOT, check=True)
@@ -80,11 +85,20 @@ def build():
         "default-src 'self'", "base-uri 'none'", "frame-ancestors 'none'", "form-action 'self'",
         "script-src 'self' https://challenges.cloudflare.com " + " ".join(inline_hashes),
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data: https://*.basemaps.cartocdn.com https://avatars.githubusercontent.com",
+        "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data: https://tile.openstreetmap.org https://avatars.githubusercontent.com",
         "connect-src 'self' https://challenges.cloudflare.com", "frame-src 'self' https://challenges.cloudflare.com",
         "object-src 'self'", "upgrade-insecure-requests",
     ])
-    (dist / "_headers").write_text("/*\n  Content-Security-Policy: " + csp + "\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Strict-Transport-Security: max-age=31536000\n", encoding="utf8")
+    (dist / "_headers").write_text(
+        "/*\n  Content-Security-Policy: " + csp
+        + "\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY"
+        + "\n  Referrer-Policy: strict-origin-when-cross-origin"
+        + "\n  Permissions-Policy: camera=(), microphone=(), geolocation=()"
+        + "\n  Strict-Transport-Security: max-age=31536000"
+        + "\n\n/static/files/resume.pdf\n  ! X-Frame-Options\n  X-Frame-Options: SAMEORIGIN"
+        + "\n  ! Content-Security-Policy\n  Content-Security-Policy: default-src 'self'; frame-ancestors 'self'\n",
+        encoding="utf8",
+    )
     print("Built public assets and private runtime bundle; no runtime credentials used.")
 
 

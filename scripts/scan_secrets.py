@@ -9,7 +9,9 @@ PATTERNS = [rb'gh[pousr]_[A-Za-z0-9]{30,}', rb'github_pat_[A-Za-z0-9_]{40,}',
             rb'sk-[A-Za-z0-9_-]{24,}', rb'xkeysib-[A-Za-z0-9-]{30,}',
             rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----']
 PUBLIC_NAMES = [b'LLM_API_KEY', b'GITHUB_TOKEN', b'SMTP_PASS', b'DATABASE_URL',
-                b'FLASK_SECRET_KEY', b'BREVO_API_KEY', b'CLOUDFLARE_API_TOKEN']
+                b'FLASK_SECRET_KEY', b'BREVO_API_KEY', b'CLOUDFLARE_API_TOKEN',
+                b'TURNSTILE_SECRET_KEY', b'SESSION_SECRET', b'MAIL_FROM',
+                b'CONTACT_TO_EMAIL']
 
 def known_secrets():
     from dotenv import dotenv_values

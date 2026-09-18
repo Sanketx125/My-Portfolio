@@ -16,7 +16,7 @@ function armIdleShutdown() {
   if (process.env.CI) return;
   clearTimeout(idle);
   // Playwright cannot always signal its web server cleanly on Windows.
-  idle = setTimeout(() => server.close(() => process.exit(0)), 10_000);
+  idle = setTimeout(() => server.close(() => process.exit(0)), 60_000);
 }
 
 const server = createServer(async (request, response) => {

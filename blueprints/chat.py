@@ -4,10 +4,9 @@ Provider-agnostic: works with any OpenAI-compatible chat-completions
 endpoint (OpenCode Zen, OpenAI, OpenRouter, Groq, a self-hosted model...)
 selected purely via LLM_API_BASE / LLM_API_KEY / LLM_MODEL env vars.
 """
-import re
 import uuid
 import requests
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 
 from extensions import limiter
 from models import db, ChatMessage
@@ -18,17 +17,17 @@ chat_bp = Blueprint("chat", __name__, url_prefix="/api")
 
 MAX_MESSAGE_LENGTH = CHAT_MESSAGE_LIMIT
 HISTORY_TURNS = CONTRACT_HISTORY_TURNS
-VALID_MODES = {"default", "recruiter"}
+VALID_MODES = {"default", "recruiter", "jd_match"}
 PITCH_SENTINEL = "__pitch__"
-
 
 from services.prompts import _system_prompt
 
 
 def _get_or_create_session_id(payload: dict) -> str:
-    session_id = (payload or {}).get("session_id", "")
-    if not session_id or not re.match(r"^[a-zA-Z0-9_-]{1,64}$", session_id):
+    session_id = session.get("chat_session_id")
+    if not session_id:
         session_id = uuid.uuid4().hex
+        session["chat_session_id"] = session_id
     return session_id
 
 
@@ -85,9 +84,6 @@ def chat():
     if len(role_hint) > 80:
         return jsonify({"error": "Role is too long."}), 400
 
-    # One-click "pitch me" requests: the client sends the sentinel (optionally
-    # followed by a target role), or just an empty message in recruiter mode.
-    # Expand it into a concrete instruction here so the UI stays dumb.
     if message.startswith(PITCH_SENTINEL) or (mode == "recruiter" and not message):
         target = message.replace(PITCH_SENTINEL, "").strip() or role_hint
         message = (
@@ -95,6 +91,11 @@ def chat():
             + (f" for a {target} role" if target else " as a candidate")
             + ". Lead with fit, back it with concrete evidence, and close with "
             "why a team should hire them."
+        )
+    elif mode == "jd_match" and message and not message.startswith("Please evaluate"):
+        message = (
+            f"Please evaluate {CONTENT['name']} for the following job description / role requirements:\n\n"
+            f"{message}"
         )
 
     if not message:
@@ -131,7 +132,7 @@ def chat():
             }
         ), 504
     except Exception:
-        current_app.logger.exception("LLM call failed")
+        current_app.logger.warning("LLM provider request failed")
         return jsonify(
             {
                 "error": "Something went wrong reaching the assistant. Try "
@@ -140,19 +141,20 @@ def chat():
             }
         ), 502
 
-    db.session.add(ChatMessage(session_id=session_id, role="user", content=message))
-    db.session.add(ChatMessage(session_id=session_id, role="assistant", content=reply))
-    db.session.commit()
+    if mode != "jd_match":
+        db.session.add(ChatMessage(session_id=session_id, role="user", content=message))
+        db.session.add(ChatMessage(session_id=session_id, role="assistant", content=reply))
+        db.session.commit()
 
-    # Trim old history beyond the window for this session
-    excess = (
-        ChatMessage.query.filter_by(session_id=session_id)
-        .order_by(ChatMessage.created_at.desc())
-        .offset(HISTORY_TURNS * 2)
-        .all()
-    )
-    for row in excess:
-        db.session.delete(row)
-    db.session.commit()
+        # Trim old history beyond the window for this session
+        excess = (
+            ChatMessage.query.filter_by(session_id=session_id)
+            .order_by(ChatMessage.created_at.desc())
+            .offset(HISTORY_TURNS * 2)
+            .all()
+        )
+        for row in excess:
+            db.session.delete(row)
+        db.session.commit()
 
     return jsonify({"reply": reply, "session_id": session_id})

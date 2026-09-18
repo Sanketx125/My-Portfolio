@@ -1,6 +1,18 @@
 import portfolio from '../.generated/portfolio.json' with {type: 'json'};
 import {HttpError, nowSeconds, budget} from './security.mjs';
 
+export function validateCapabilityRegistry(capabilities = portfolio.verifiedCapabilities, factIds = portfolio.verifiedFactIds) {
+  const known = new Set(factIds);
+  for (const capability of capabilities) {
+    if (!capability.id || !capability.evidence_ids?.length || capability.evidence_ids.some(id => !known.has(id))) {
+      throw new Error('Invalid verified capability evidence');
+    }
+  }
+  return capabilities;
+}
+
+validateCapabilityRegistry();
+
 export function validateContact(data) {
   const fields = {};
   const result = {};
@@ -24,12 +36,14 @@ export class AIService {
   async reply(data, id) {
     let message = data.message ?? '';
     const mode = data.mode ?? 'default';
-    if (typeof message !== 'string' || !['default', 'recruiter'].includes(mode) || typeof (data.role ?? '') !== 'string') throw new HttpError(400, 'Invalid chat request.');
+    if (typeof message !== 'string' || !['default', 'recruiter', 'jd_match'].includes(mode) || typeof (data.role ?? '') !== 'string') throw new HttpError(400, 'Invalid chat request.');
     if (message.length > portfolio.chatLimit || (data.role || '').length > 80) throw new HttpError(400, 'Message is too long.');
     message = message.trim();
     if (message.startsWith('__pitch__') || (mode === 'recruiter' && !message)) {
       const target = message.replace('__pitch__', '').trim() || data.role;
       message = `Give me a confident 60-second pitch for ${portfolio.name}${target ? ` for a ${target} role` : ' as a candidate'}. Lead with fit, back it with concrete evidence, and close with why a team should hire them.`;
+    } else if (mode === 'jd_match' && message && !message.startsWith('Please evaluate')) {
+      message = `Please evaluate ${portfolio.name} for the following job description / role requirements:\n\n${message}`;
     }
     if (!message) throw new HttpError(400, "Message can't be empty.");
     if (!this.env.LLM_API_KEY || !this.env.LLM_MODEL) throw new HttpError(503, 'The assistant is unavailable. Please use the contact form.');
@@ -56,8 +70,9 @@ export class AIService {
       if (!response.ok) throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
       const result = await response.json();
       const reply = result.choices?.[0]?.message?.content;
-      if (typeof reply !== 'string' || !reply.trim() || reply.length > 10000) throw new HttpError(502, 'The assistant returned an invalid answer.');
-      await this.store.saveChat(id, message, reply.trim());
+      if (mode !== 'jd_match') {
+        await this.store.saveChat(id, message, reply.trim());
+      }
       return {reply: reply.trim()};
     } finally {
       await this.store.release(`chat:${id}`, owner);

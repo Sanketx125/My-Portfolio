@@ -1,7 +1,7 @@
 <section class="section" id="github" aria-label="GitHub activity">
   <div class="section__inner">
     <div class="section__head reveal">
-      <p class="section__eyebrow">05 — GitHub</p>
+      <p class="section__eyebrow">06 — GitHub</p>
       <h2 class="section__title">Proof of work, straight from the source</h2>
       <p class="section__lead">Live activity pulled from GitHub — contributions, languages and repositories.</p>
     </div>
@@ -13,8 +13,8 @@
         <span class="gh-stat__label">Public repos</span>
       </div>
       <div class="glass gh-stat reveal" style="--i: 1;">
-        <span class="gh-stat__value" data-count-to="{{ github.totals.private_repos }}">0</span>
-        <span class="gh-stat__label">Private repos</span>
+        <span class="gh-stat__value" data-count-to="{{ github.totals.followers }}">0</span>
+        <span class="gh-stat__label">GitHub followers</span>
       </div>
       <div class="glass gh-stat reveal" style="--i: 2;">
         <span class="gh-stat__value" data-count-to="{{ github.totals.stars }}">0</span>
@@ -129,7 +129,7 @@
     </div>
 
     <p style="margin-top: var(--s-5); font-size: var(--fs-xs); color: var(--text-3);">
-      Private repositories are shown as a count only — never by name.
+      Only public repository metadata is requested or displayed.
       {% if github.fetched_at %}· Updated {{ github.fetched_at }}{% endif %}
     </p>
 
@@ -142,7 +142,7 @@
         </div>
         <span class="badge">GitHub</span>
       </div>
-      <p style="margin-top: var(--s-4); color: var(--text-2);">Explore my repositories below. Live activity is temporarily unavailable.</p>
+      <p style="margin-top: var(--s-4); color: var(--text-2);">Verified public repositories remain available below. Live contribution statistics reconnect automatically when GitHub is reachable.</p>
       {% if content.socials.github %}
       <p style="margin-top: var(--s-5);">
         <a class="btn btn--ghost btn--small" href="{{ content.socials.github }}" target="_blank" rel="noopener">View GitHub profile</a>

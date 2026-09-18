@@ -1,6 +1,13 @@
 import {test, expect} from '@playwright/test';
 
 async function useLocalApi(page) {
+  // Keep browser checks deterministic in restricted/offline environments.
+  await page.route('https://fonts.googleapis.com/**', route => route.fulfill({contentType: 'text/css', body: ''}));
+  await page.route('https://fonts.gstatic.com/**', route => route.fulfill({status: 204, body: ''}));
+  await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({
+    contentType: 'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XwN8WQAAAABJRU5ErkJggg==', 'base64'),
+  }));
   await page.route('**/static/js/runtime-config.js', route => route.fulfill({
     contentType: 'application/javascript',
     body: 'window.PORTFOLIO_CONFIG=Object.freeze({apiBaseUrl:"",production:false,turnstileSiteKey:""});',
@@ -24,6 +31,10 @@ test('static build preserves assets and primary interactions', async ({page, req
     }
   });
   await page.goto('/');
+
+  await expect(page.locator('body')).toHaveCSS('user-select', 'none');
+  expect(await page.locator('[data-nav-link]').evaluateAll(links => links.map(link => link.getAttribute('href'))))
+    .toEqual(['#about', '#projects', '#portfolio-intelligence', '#social-proof', '#career', '#contact']);
 
   await expect(page.locator('#project-map')).toHaveClass(/leaflet-container/);
   expect(await page.evaluate(() => ({gsap: !!window.gsap, trigger: !!window.ScrollTrigger, leaflet: !!window.L})))
@@ -53,10 +64,8 @@ test('static build preserves assets and primary interactions', async ({page, req
   await page.keyboard.press('Escape');
   await expect(page.locator('#palette')).toBeHidden();
 
-  await page.locator('#theme-toggle').click();
-  expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe('light');
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('#theme-toggle')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.hasAttribute('data-theme'))).toBeFalsy();
   expect(failedLocal).toEqual([]);
 });
 
@@ -87,6 +96,8 @@ test('mobile, contact, chat, recruiter, and resume flows remain wired', async ({
   await page.locator('#chat-input').fill('What did you build?');
   await page.locator('#chat-form').press('Enter');
   await expect(page.locator('.chat-bubble--assistant').last()).toContainText('Test assistant reply.');
+  await expect(page.locator('.chat-bubble--assistant').last()).toHaveCSS('user-select', 'text');
+  await expect(page.locator('#chat-input')).toHaveCSS('user-select', 'text');
   await page.locator('[data-chat-mode="recruiter"]').click();
   await expect(page.locator('[data-chat-mode="recruiter"]')).toHaveAttribute('aria-pressed', 'true');
 
@@ -119,4 +130,154 @@ test('production client obtains a Turnstile token before a write request', async
   await page.locator('#contact-submit').click();
   await expect(page.locator('#form-status')).toContainText('Verified.');
   expect(submitted.turnstile_token).toBe('verified-test-token');
+});
+
+test('comprehensive content integrity, interactions, and visual review across desktop and mobile', async ({page}) => {
+  test.setTimeout(60000);
+  const consoleErrors = [];
+  page.on('console', msg => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  });
+  page.on('pageerror', err => {
+    consoleErrors.push(err.message);
+  });
+
+  await useLocalApi(page);
+  await page.route('**/api/github?format=html', route => route.fulfill({
+    contentType: 'application/json', body: JSON.stringify({configured: false}),
+  }));
+
+  // 1. Desktop Viewport
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('/');
+
+  // Career section verification
+  await expect(page.locator('#career')).toBeVisible();
+  await expect(page.locator('#recognition-code-catalyst')).toBeVisible();
+  await expect(page.locator('#recognition-code-catalyst')).toContainText('Code Catalyst Award');
+  await expect(page.locator('#recognition-code-catalyst')).toContainText('Nakshatech');
+  await expect(page.locator('#recognition-code-catalyst')).toContainText('14th Anniversary Day');
+
+  // Social Proof section verification
+  await expect(page.locator('#social-proof')).toBeVisible();
+  await expect(page.locator('.impact-item')).toHaveCount(4);
+
+  // Portfolio Intelligence Hub: Tab 1 (Ask)
+  await expect(page.locator('#portfolio-intelligence')).toBeVisible();
+  await expect(page.locator('#pi-tab-ask')).toHaveClass(/is-active/);
+  await expect(page.locator('#pi-panel-ask')).toBeVisible();
+  await page.locator('[data-sample-prompt]').first().click();
+  await expect(page.locator('#chat-panel')).toBeVisible();
+  await expect(page.locator('#chat-input')).toHaveValue('What geospatial AI work have you done?');
+  await page.locator('#chat-close').click();
+
+  // Portfolio Intelligence Hub: Tab 2 (Recruiter & JD Matcher)
+  await page.locator('#pi-tab-recruiter').click();
+  await expect(page.locator('#pi-panel-recruiter')).toBeVisible();
+  await expect(page.locator('#pi-profile-text')).toContainText('Nakshatech');
+  await expect(page.locator('#pi-profile-text')).toContainText('Code Catalyst Award');
+
+  // Test JD Matcher with preset
+  await page.locator('.pi-sample-jd-btn').first().click();
+  await page.locator('#pi-analyze-jd-btn').click();
+  await expect(page.locator('#pi-jd-results')).toBeVisible();
+  await expect(page.locator('#pi-score-badge')).toBeVisible();
+  expect(await page.locator('#pi-matched-skills li').count()).toBeGreaterThan(0);
+
+  // Test unsupported skill detection: "Not demonstrated in current portfolio"
+  await page.locator('#pi-jd-textarea').fill('Terraform, Kafka, Azure DevOps, Scala, React Native');
+  await page.locator('#pi-analyze-jd-btn').click();
+  await expect(page.locator('#pi-unmatched-container')).toBeVisible();
+  for (const skill of ['Terraform', 'Kafka', 'Azure DevOps', 'Scala', 'React Native']) {
+    await expect(page.locator('#pi-unmatched-skills')).toContainText('Not demonstrated in current portfolio: ' + skill);
+  }
+
+  // Portfolio Intelligence Hub: Tab 3 (Tech Dive)
+  await page.locator('#pi-tab-tech-dive').click();
+  await expect(page.locator('#pi-panel-tech-dive')).toBeVisible();
+  await expect(page.locator('#td-sub-architecture')).toBeVisible();
+
+  // Switch to Engineering Decisions subtab
+  await page.locator('[data-td-sub="decisions"]').click();
+  await expect(page.locator('#td-sub-decisions')).toBeVisible();
+  await expect(page.locator('.pi-decisions-grid .card')).toHaveCount(4);
+  await expect(page.locator('#td-sub-decisions')).toContainText('Cloth Simulation Filter (CSF)');
+  await expect(page.locator('#td-sub-decisions')).toContainText('PointNet++ Direct Point Processing');
+
+  // Command Palette
+  await page.keyboard.press('Control+K');
+  await expect(page.locator('#palette')).toBeVisible();
+  await page.locator('#palette-input').fill('code catalyst');
+  await page.locator('.palette__item').first().click();
+  await expect(page.locator('#recognition-code-catalyst')).toBeVisible();
+
+  // Test chat markdown parsing with simulated complex markdown (testing formatting and preventing constraints**: bug)
+  await page.unroute('**/api/chat');
+  await page.route('**/api/chat', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      reply: '### Fit Summary\n**Key constraints**: low latency.\n- [bad](javascript:alert(1))\n- [bad](data:text/html,bad)\n- [bad](vbscript:msgbox(1))\n- [bad](file:///etc/passwd)\n- [broken](javascript:alert(1)\n- [good](https://example.com)\n- [internal](#projects)\n```python\nprint("secure")\n```\n<script>window.xss=true;</script>\n<img src=x onerror="window.imgXss=true">'
+    }),
+  }));
+  await page.locator('#chat-launcher').click();
+  await page.locator('#chat-input').fill('Evaluate fit');
+  await page.locator('#chat-form').press('Enter');
+  const animatedReply = page.locator('.chat-bubble--assistant').last();
+  await expect(animatedReply).toContainText('Fit Summary');
+  await expect(animatedReply).not.toHaveAttribute('aria-busy', 'true');
+  const lastBubbleHtml = await animatedReply.innerHTML();
+  expect(lastBubbleHtml).toContain('<h4 class="chat-heading">Fit Summary</h4>');
+  expect(lastBubbleHtml).toContain('<strong>Key constraints</strong>:');
+  expect(lastBubbleHtml).not.toContain('constraints**:');
+  expect(lastBubbleHtml).not.toContain('<script>');
+  expect(lastBubbleHtml).not.toContain('<img');
+  expect(lastBubbleHtml).not.toMatch(/href="(?:javascript|data|vbscript|file):/i);
+  expect(lastBubbleHtml).toContain('href="https://example.com"');
+  expect(lastBubbleHtml).toContain('href="#projects"');
+  expect(await page.evaluate(() => window.xss)).toBeUndefined();
+  expect(await page.evaluate(() => window.imgXss)).toBeUndefined();
+  await page.locator('#chat-close').click();
+
+  // Visual Screenshots: Desktop
+  await page.locator('#career').screenshot({path: '.artifacts/screenshots/desktop-career.png'});
+  await page.locator('#social-proof').screenshot({path: '.artifacts/screenshots/desktop-social-proof.png'});
+  await page.locator('#recognition-code-catalyst').screenshot({path: '.artifacts/screenshots/desktop-code-catalyst.png'});
+
+  // Switch to Ask tab and screenshot
+  await page.locator('#pi-tab-ask').click();
+  await page.locator('#pi-panel-ask').screenshot({path: '.artifacts/screenshots/desktop-pi-ask.png'});
+
+  // Switch to Recruiter tab and screenshot
+  await page.locator('#pi-tab-recruiter').click();
+  await page.locator('#pi-panel-recruiter').screenshot({path: '.artifacts/screenshots/desktop-pi-recruiter.png'});
+  await page.locator('#pi-jd-results').screenshot({path: '.artifacts/screenshots/desktop-jd-analysis.png'});
+
+  // Switch to Tech Dive tab and screenshot
+  await page.locator('#pi-tab-tech-dive').click();
+  await page.locator('[data-td-sub="decisions"]').click();
+  await page.locator('#td-sub-decisions').screenshot({path: '.artifacts/screenshots/desktop-pi-tech-dive.png'});
+
+  // 2. Mobile Viewport (390x844)
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('/');
+
+  // Recruiter panel on mobile
+  await page.locator('#pi-tab-recruiter').click();
+  await expect(page.locator('#pi-panel-recruiter')).toBeVisible();
+  await page.locator('#pi-panel-recruiter').screenshot({path: '.artifacts/screenshots/mobile-recruiter.png'});
+
+  // JD Analyzer on mobile
+  await page.locator('.pi-sample-jd-btn').first().click();
+  await page.locator('#pi-analyze-jd-btn').click();
+  await expect(page.locator('#pi-jd-results')).toBeVisible();
+  await page.locator('#pi-jd-results').screenshot({path: '.artifacts/screenshots/mobile-jd.png'});
+
+  // Tech dive on mobile
+  await page.locator('#pi-tab-tech-dive').click();
+  await page.locator('[data-td-sub="decisions"]').click();
+  await expect(page.locator('#td-sub-decisions')).toBeVisible();
+  await page.locator('#td-sub-decisions').screenshot({path: '.artifacts/screenshots/mobile-tech-dive.png'});
+
+  // Verify zero console errors throughout the entire suite
+  expect(consoleErrors).toEqual([]);
 });

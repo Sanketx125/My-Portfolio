@@ -13,6 +13,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Strict"
     SESSION_COOKIE_SECURE = ENV != "development"
+    SESSION_COOKIE_NAME = "session" if ENV == "development" else "__Host-portfolio"
+    SESSION_COOKIE_PATH = "/"
+    SESSION_COOKIE_DOMAIN = None
 
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "sqlite:///portfolio.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False

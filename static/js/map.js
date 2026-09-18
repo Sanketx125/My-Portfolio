@@ -39,7 +39,7 @@
     const n = seen[key] = (seen[key] || 0) + 1;
     if (n === 1) return coords.slice();
     const angle = (n - 2) * 2.2;
-    const radius = 0.012 * Math.ceil((n - 1) / 6);
+    const radius = 0.025 * Math.ceil((n - 1) / 6);
     return [coords[0] + Math.sin(angle) * radius, coords[1] + Math.cos(angle) * radius];
   }
 
@@ -49,9 +49,8 @@
     attributionControl: true,
   });
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
   }).addTo(map);
 
@@ -64,10 +63,10 @@
 
     const icon = L.divIcon({
       className: "map-pin-wrap",
-      html: '<span class="map-pin"></span>',
-      iconSize: [15, 15],
-      iconAnchor: [7.5, 7.5],
-      popupAnchor: [0, -10],
+      html: '<span class="map-pin" aria-hidden="true"><svg viewBox="0 0 32 40"><path d="M16 1C8.27 1 2 7.27 2 15c0 10.5 14 23.5 14 23.5S30 25.5 30 15C30 7.27 23.73 1 16 1Z"/><circle cx="16" cy="15" r="5"/></svg></span>',
+      iconSize: [32, 40],
+      iconAnchor: [16, 38],
+      popupAnchor: [0, -34],
     });
 
     const marker = L.marker(position, { icon: icon, title: p.title }).addTo(map);

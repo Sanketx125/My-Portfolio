@@ -5,8 +5,8 @@ Design notes:
     ``GITHUB_CACHE_TTL_SECONDS`` so page renders cost nothing after the first.
   * Every failure mode is swallowed and reported as ``None``. The site must
     never break because GitHub is unreachable or the token is missing/expired.
-  * PRIVATE repositories are only ever read as a ``totalCount`` — their names,
-    descriptions and URLs are never requested, so they can never leak to the page.
+  * Only public repository metadata is queried. Private repository access is
+    unnecessary and must not be granted to the portfolio token.
 """
 import logging
 import time
@@ -61,7 +61,6 @@ query($login: String!) {
         repositoryTopics(first: 6) { nodes { topic { name } } }
       }
     }
-    privateRepos: repositories(privacy: PRIVATE) { totalCount }
   }
 }
 """
@@ -146,7 +145,6 @@ def _normalize(user: dict) -> dict:
         },
         "totals": {
             "public_repos": user["publicRepos"]["totalCount"],
-            "private_repos": user["privateRepos"]["totalCount"],
             "stars": sum(r.get("stargazerCount", 0) for r in repos),
             "followers": user["followers"]["totalCount"],
             "contributions": contributions["contributionCalendar"]["totalContributions"],
@@ -198,16 +196,16 @@ def _fetch_user(username: str, token: str):
         response.raise_for_status()
         payload = response.json()
     except Exception:
-        log.warning("GitHub GraphQL request failed for %r", username, exc_info=True)
+        log.warning("GitHub GraphQL request failed for configured account")
         return None
 
     if payload.get("errors"):
-        log.warning("GitHub GraphQL returned errors for %r: %s", username, payload["errors"])
+        log.warning("GitHub GraphQL returned a provider error")
         return None
 
     user = (payload.get("data") or {}).get("user")
     if not user:
-        log.warning("GitHub user %r not found", username)
+        log.warning("Configured GitHub account was not found")
     return user
 
 
@@ -249,9 +247,6 @@ def _merge_users(primary: dict, secondary: dict) -> dict:
         "totalCount": primary["publicRepos"]["totalCount"] + secondary["publicRepos"]["totalCount"],
         "nodes": primary["publicRepos"]["nodes"] + secondary["publicRepos"]["nodes"],
     }
-    merged["privateRepos"] = {
-        "totalCount": primary["privateRepos"]["totalCount"] + secondary["privateRepos"]["totalCount"],
-    }
     return merged
 
 
@@ -284,7 +279,7 @@ def get_github_stats(
     try:
         stats = _normalize(user)
     except Exception:
-        log.warning("Failed to normalize GitHub payload", exc_info=True)
+        log.warning("Failed to normalize GitHub payload")
         return None
 
     _cache["data"] = stats

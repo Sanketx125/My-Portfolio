@@ -36,7 +36,7 @@ function normalize(user) {
   return {
     configured: true,
     profile: {login: text(user.login), name: text(user.name), avatar: publicUrl(user.avatarUrl), bio: text(user.bio)},
-    totals: {public_repos: count(user.publicRepos?.totalCount), private_repos: count(user.privateRepos?.totalCount),
+    totals: {public_repos: count(user.publicRepos?.totalCount),
       stars: repos.reduce((sum, repo) => sum + count(repo.stargazerCount), 0), followers: count(user.followers?.totalCount),
       contributions: count(contributions.contributionCalendar?.totalContributions)},
     activity: {commits: count(contributions.totalCommitContributions), prs: count(contributions.totalPullRequestContributions), issues: count(contributions.totalIssueContributions)},
@@ -61,7 +61,6 @@ function merge(primary, secondary) {
     contributionCalendar: {totalContributions: contributionDays.reduce((sum, day) => sum + day.contributionCount, 0), weeks: [{contributionDays}]},
   };
   merged.publicRepos = {totalCount: count(primary.publicRepos?.totalCount) + count(secondary.publicRepos?.totalCount), nodes: [...(primary.publicRepos?.nodes || []), ...(secondary.publicRepos?.nodes || [])]};
-  merged.privateRepos = {totalCount: count(primary.privateRepos?.totalCount) + count(secondary.privateRepos?.totalCount)};
   return merged;
 }
 

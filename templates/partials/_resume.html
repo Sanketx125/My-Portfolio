@@ -1,7 +1,7 @@
 <section class="section" id="resume" aria-label="Résumé">
   <div class="section__inner">
     <div class="section__head reveal">
-      <p class="section__eyebrow">07 — R&eacute;sum&eacute;</p>
+      <p class="section__eyebrow">09 — R&eacute;sum&eacute;</p>
       <h2 class="section__title">The one-page version</h2>
       <p class="section__lead">Read it here, or take it with you.</p>
     </div>
@@ -30,12 +30,7 @@
       </div>
 
       <div class="resume-viewer reveal reveal--right">
-        <object data="{{ url_for('static', filename=content.resume_pdf) }}" type="application/pdf" aria-label="Résumé PDF preview">
-          <div class="resume-fallback">
-            <p>This browser can't display the PDF inline.</p>
-            <a class="btn btn--primary btn--small" href="{{ url_for('static', filename=content.resume_pdf) }}" download>Download r&eacute;sum&eacute;</a>
-          </div>
-        </object>
+        <iframe src="{{ url_for('static', filename=content.resume_pdf) }}#view=FitH&amp;toolbar=1" title="Résumé PDF preview" loading="lazy"></iframe>
       </div>
     </div>
   </div>

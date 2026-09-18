@@ -12,6 +12,8 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     if not app.config.get("SECRET_KEY"):
         raise RuntimeError("FLASK_SECRET_KEY is required outside development")
+    if app.config.get("ENV") != "development" and len(app.config["SECRET_KEY"]) < 32:
+        raise RuntimeError("FLASK_SECRET_KEY must contain at least 32 characters")
 
     db.init_app(app)
     limiter.init_app(app)
@@ -29,22 +31,40 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
+    @app.before_request
+    def protect_write_origins():
+        if request.method != "POST" or request.path not in {"/api/chat", "/api/contact"}:
+            return None
+        if app.config.get("ENV") == "development":
+            return None
+        expected = app.config.get("ALLOWED_ORIGIN")
+        origin = request.headers.get("Origin")
+        if not expected or expected == "*" or origin != expected or request.headers.get("Sec-Fetch-Site") == "cross-site":
+            return jsonify({"error": "Request origin is not allowed."}), 403
+        return None
+
     @app.after_request
     def set_security_headers(response):
         allowed = app.config.get("ALLOWED_ORIGIN", "*")
         origin = request.headers.get("Origin")
+        is_resume_pdf = request.path.endswith("/static/files/resume.pdf")
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = (
+            "SAMEORIGIN" if is_resume_pdf else "DENY"
+        )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Content-Security-Policy"] = (
+        site_csp = (
             "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; "
             "form-action 'self'; script-src 'self' 'unsafe-inline' "
             "https://cdnjs.cloudflare.com https://unpkg.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
             "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: "
-            "https://*.basemaps.cartocdn.com https://avatars.githubusercontent.com; "
+            "https://tile.openstreetmap.org https://avatars.githubusercontent.com; "
             "connect-src 'self'; object-src 'self'"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; frame-ancestors 'self'" if is_resume_pdf else site_csp
         )
         if app.config.get("ENV") != "development":
             response.headers["Strict-Transport-Security"] = "max-age=31536000"

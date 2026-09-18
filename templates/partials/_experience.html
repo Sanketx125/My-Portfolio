@@ -1,11 +1,14 @@
-<section class="section" id="experience" aria-label="Experience">
+<section class="section" id="career" aria-label="Career and Experience">
+  <div id="experience" aria-hidden="true" style="position: relative; top: -80px;"></div>
   <div class="section__inner">
     <div class="section__head reveal">
-      <p class="section__eyebrow">06 — Experience</p>
-      <h2 class="section__title">Where I've built it</h2>
+      <p class="section__eyebrow">07 — Career</p>
+      <h2 class="section__title">Where I've built &amp; been recognized</h2>
+      <p class="section__lead">Professional roles, formal education, and internal engineering honors.</p>
     </div>
 
     <div class="experience-grid">
+      <!-- Experience Timeline -->
       <ol class="timeline">
         {% for job in content.experience %}
         <li class="timeline__item reveal" style="--i: {{ loop.index0 }};">
@@ -22,21 +25,56 @@
         {% endfor %}
       </ol>
 
-      <div>
-        <div class="glass card reveal reveal--right">
+      <!-- Sidebar: Recognition & Education -->
+      <div class="career-sidebar">
+        <!-- Recognition: Code Catalyst -->
+        {% if content.recognition %}
+        {% for award in content.recognition %}
+        <div class="glass card card--featured reveal reveal--right" id="recognition-{{ award.id }}">
+          <div class="award-header">
+            <span class="award-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="m12 1 3.2 6.6L22.5 8.6l-5.3 5.1 1.3 7.3L12 17.5 5.5 21l1.3-7.3L1.5 8.6l7.3-1L12 1Z"/></svg>
+            </span>
+            <div>
+              <span class="badge badge--gold">{{ award.badge }}</span>
+              <h3 class="card__title" style="margin: 4px 0 0;">{{ award.title }}</h3>
+              <p class="award-meta">{{ award.issuer }} &middot; {{ award.event }} ({{ award.date }})</p>
+            </div>
+          </div>
+          <p style="color: var(--text-2); font-size: var(--fs-sm); margin: var(--s-3) 0 var(--s-3);">
+            {{ award.summary }}
+          </p>
+          <ul class="highlight-list highlight-list--dense">
+            {% for hl in award.highlights %}
+            <li>{{ hl }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Education -->
+        <div class="glass card reveal reveal--right" style="margin-top: var(--s-5); --i: 1;">
           <p class="card__label">Education</p>
           {% for edu in content.education %}
-          <h3 class="card__title">{{ edu.degree }}</h3>
-          <p style="color: var(--text-2); font-size: var(--fs-sm); margin: 0;">
-            {{ edu.school }}<br>{{ edu.dates }} &middot; {{ edu.detail }}
+          <h3 class="card__title" style="margin-bottom: var(--s-1);">{{ edu.degree }}</h3>
+          <p style="color: var(--text-2); font-size: var(--fs-sm); margin: 0 0 var(--s-2);">
+            <strong>{{ edu.school }}</strong><br>
+            {{ edu.dates }} &middot; {{ edu.detail }}
           </p>
+          {% if edu.focus %}
+          <p style="color: var(--text-3); font-size: var(--fs-xs); margin: 0;">
+            <strong style="color: var(--text-2);">Focus:</strong> {{ edu.focus }}
+          </p>
+          {% endif %}
           {% endfor %}
         </div>
 
+        <!-- Current Availability -->
         {% if content.availability %}
-        <div class="glass card reveal reveal--right" style="margin-top: var(--s-5); --i: 1;">
+        <div class="glass card reveal reveal--right" style="margin-top: var(--s-5); --i: 2;">
           <p class="card__label">Currently</p>
-          <p style="margin: 0 0 var(--s-4); color: var(--text-2);">{{ content.availability }}</p>
+          <p style="margin: 0 0 var(--s-4); color: var(--text-2); font-size: var(--fs-sm);">{{ content.availability }}</p>
           <a href="#contact" class="btn btn--primary btn--small">Start a conversation</a>
         </div>
         {% endif %}

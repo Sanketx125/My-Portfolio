@@ -2,14 +2,6 @@
   "use strict";
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const root = document.documentElement;
-
-  function safeGet(key) {
-    try { return localStorage.getItem(key); } catch (e) { return null; }
-  }
-  function safeSet(key, val) {
-    try { localStorage.setItem(key, val); } catch (e) { /* ignore */ }
-  }
 
   /* ---------- Toast helper (shared with the command palette) ---------- */
   window.portfolioToast = function (message) {
@@ -25,31 +17,6 @@
       setTimeout(function () { toast.remove(); }, 320);
     }, 2200);
   };
-
-  /* ---------- Theme toggle ---------- */
-  const themeToggle = document.getElementById("theme-toggle");
-  const storedTheme = safeGet("theme");
-  if (storedTheme) root.setAttribute("data-theme", storedTheme);
-
-  function syncThemeLabel() {
-    if (!themeToggle) return;
-    const isLight = root.getAttribute("data-theme") === "light";
-    themeToggle.setAttribute("aria-pressed", String(isLight));
-    themeToggle.setAttribute("aria-label", isLight ? "Switch to dark mode" : "Switch to light mode");
-  }
-  syncThemeLabel();
-
-  window.portfolioToggleTheme = function () {
-    const isLight = root.getAttribute("data-theme") === "light";
-    const next = isLight ? "dark" : "light";
-    if (next === "dark") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", "light");
-    syncThemeLabel();
-    safeSet("theme", next);
-    window.portfolioToast(next === "light" ? "Light mode on" : "Dark mode on");
-  };
-
-  if (themeToggle) themeToggle.addEventListener("click", window.portfolioToggleTheme);
 
   /* ---------- Reading progress + nav scroll state ---------- */
   const nav = document.getElementById("nav");
@@ -99,14 +66,21 @@
     });
   }
 
-  if ("IntersectionObserver" in window && sections.length) {
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) setActive(entry.target.id);
-      });
-    }, { rootMargin: "-40% 0px -50% 0px", threshold: 0 });
-    sections.forEach(function (s) { observer.observe(s); });
+  function updateActiveSection() {
+    if (!sections.length) return;
+    const marker = window.scrollY + Math.min(window.innerHeight * 0.35, 280);
+    let active = null;
+    sections.forEach(function (section) {
+      if (section.offsetTop <= marker) active = section;
+    });
+    if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 4) {
+      active = sections[sections.length - 1];
+    }
+    if (active) setActive(active.id);
   }
+  window.addEventListener("scroll", updateActiveSection, { passive: true });
+  window.addEventListener("resize", updateActiveSection);
+  updateActiveSection();
 
   /* ---------- Scroll reveal (all sections below the hero) ---------- */
   const reveals = document.querySelectorAll(".reveal");

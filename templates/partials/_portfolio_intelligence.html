@@ -1,0 +1,302 @@
+<section class="section" id="portfolio-intelligence" aria-label="Portfolio Intelligence">
+  <div id="ai-chat" aria-hidden="true" style="position: relative; top: -80px;"></div>
+  <div class="section__inner">
+    <div class="section__head reveal">
+      <p class="section__eyebrow">04 — Portfolio Intelligence</p>
+      <h2 class="section__title">Portfolio Intelligence Suite</h2>
+      <p class="section__lead">
+        Interactive conversational Q&amp;A, recruiter candidate briefing with real-time JD matching, and deep architectural case studies.
+      </p>
+    </div>
+
+    <!-- Main Intelligence Tabs -->
+    <div class="pi-nav-wrap reveal">
+      <div class="pi-tabs" role="tablist" aria-label="Portfolio Intelligence Navigation">
+        <button type="button" class="pi-tab is-active" id="pi-tab-ask" role="tab" aria-selected="true" aria-controls="pi-panel-ask" data-pi-tab="ask">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ask AI
+        </button>
+        <button type="button" class="pi-tab" id="pi-tab-recruiter" role="tab" aria-selected="false" aria-controls="pi-panel-recruiter" data-pi-tab="recruiter">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Recruiter Hub &amp; Paste JD
+        </button>
+        <button type="button" class="pi-tab" id="pi-tab-tech-dive" role="tab" aria-selected="false" aria-controls="pi-panel-tech-dive" data-pi-tab="tech-dive">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16"/></svg>
+          Tech Dive
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 1: ASK (Conversational AI Assistant)
+         ========================================================= -->
+    <div class="pi-panel is-active reveal" id="pi-panel-ask" role="tabpanel" aria-labelledby="pi-tab-ask">
+      <div class="glass card pi-card">
+        <div class="pi-card__head">
+          <div>
+            <span class="badge">Grounded in verified facts</span>
+            <h3 class="card__title" style="margin: var(--s-2) 0 0;">Ask {{ content.name.split(' ')[0] }}'s AI</h3>
+            <p style="color: var(--text-2); font-size: var(--fs-sm); margin: var(--s-1) 0 0;">
+              Choose a sample question below, or open the chat to write your own.
+            </p>
+          </div>
+          <div style="display: flex; gap: var(--s-2); flex-wrap: wrap;">
+            <button type="button" class="btn btn--primary btn--small" id="open-chat-section">Open full chat</button>
+            <button type="button" class="btn btn--ghost btn--small" data-open-pitch>Recruiter pitch</button>
+          </div>
+        </div>
+
+        <p class="card__label" style="margin-top: var(--s-5);">Sample inquiries</p>
+        <div class="ai-intro__prompts" style="margin-bottom: var(--s-5);">
+          <button type="button" class="chip chip--button" data-sample-prompt="What geospatial AI work have you done?">What geospatial AI work have you done?</button>
+          <button type="button" class="chip chip--button" data-sample-prompt="Tell me about your LLM and RAG experience.">Tell me about your LLM / RAG experience</button>
+          <button type="button" class="chip chip--button" data-sample-prompt="Which project best shows your computer-vision skill?">Which project shows your CV work?</button>
+          <button type="button" class="chip chip--button" data-sample-prompt="Tell me about the NakshAI_LiDAR pipeline.">Tell me about NakshAI_LiDAR pipeline</button>
+          <button type="button" class="chip chip--button" data-sample-prompt="Are you open to AI/ML engineering roles?">Are you open to new roles?</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 2: RECRUITER (30-sec profile, Why hire me, Achievements, Paste JD)
+         ========================================================= -->
+    {% set rec = content.portfolio_intelligence.recruiter %}
+    <div class="pi-panel" id="pi-panel-recruiter" role="tabpanel" aria-labelledby="pi-tab-recruiter" hidden>
+      <!-- 30-sec Profile -->
+      <div class="glass card pi-card reveal">
+        <div class="project-card__top">
+          <div>
+            <span class="badge badge--gold">30-Second Candidate Brief</span>
+            <h3 class="card__title" style="margin: var(--s-2) 0 0;">Executive Summary for Hiring Teams</h3>
+          </div>
+          <button type="button" class="btn btn--ghost btn--small" id="pi-copy-profile">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copy brief
+          </button>
+        </div>
+        <p class="pi-profile-text" id="pi-profile-text" style="margin-top: var(--s-3); color: var(--text-2); font-size: 1.05rem; line-height: 1.6;">
+          {{ rec.profile_30s }}
+        </p>
+      </div>
+
+      <!-- Achievements Grid -->
+      <div class="pi-achievements-grid reveal" style="margin-top: var(--s-5);">
+        {% for ach in rec.achievements %}
+        <div class="glass card pi-stat-card">
+          <span class="stat__number">{{ ach.number }}</span>
+          <strong style="color: var(--text); font-size: var(--fs-base); margin-top: var(--s-1); display: block;">{{ ach.label }}</strong>
+          <span style="color: var(--text-2); font-size: var(--fs-xs);">{{ ach.detail }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Why Hire Me: 4 Value Pillars -->
+      <div class="glass card pi-card reveal" style="margin-top: var(--s-5);">
+        <p class="card__label">Value Proposition</p>
+        <h3 class="card__title" style="margin-bottom: var(--s-4);">Why Hire {{ content.name.split(' ')[0] }}?</h3>
+        <div class="pi-why-grid">
+          {% for pillar in rec.why_hire_me %}
+          <div class="pi-why-item">
+            <span class="pi-why-num" aria-hidden="true">0{{ loop.index }}</span>
+            <div>
+              <h4 style="margin: 0 0 var(--s-1); font-size: var(--fs-base); color: var(--text);">{{ pillar.pillar }}</h4>
+              <p style="margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5;">{{ pillar.desc }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Paste JD (Job Description Matcher) -->
+      <div class="glass card pi-card pi-jd-matcher reveal" style="margin-top: var(--s-5);" id="paste-jd">
+        <div class="project-card__top">
+          <div>
+            <span class="badge">Interactive Fit Matcher</span>
+            <h3 class="card__title" style="margin: var(--s-2) 0 0;">Paste Job Description</h3>
+            <p style="color: var(--text-2); font-size: var(--fs-sm); margin: var(--s-1) 0 0;">
+              Paste your role requirements or select a preset below to instantly evaluate candidate fit.
+            </p>
+          </div>
+        </div>
+
+        <!-- JD Presets -->
+        <div class="pi-jd-presets" style="margin: var(--s-4) 0 var(--s-3);">
+          <span style="font-size: var(--fs-xs); color: var(--text-3); display: block; margin-bottom: var(--s-2);">Try a sample role preset:</span>
+          <div class="chip-list">
+            {% for sample in rec.sample_jds %}
+            <button type="button" class="chip chip--button pi-sample-jd-btn" data-jd="{{ sample.content | escape }}">
+              {{ sample.title }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="pi-jd-input-wrap">
+          <label for="pi-jd-textarea" class="sr-only">Job description text</label>
+          <textarea id="pi-jd-textarea" class="pi-jd-textarea" rows="5" placeholder="Paste requirements, job description, or desired tech stack here (e.g. PyTorch, Computer Vision, LiDAR, LangChain, RAG)..."></textarea>
+        </div>
+
+        <div class="pi-jd-actions">
+          <button type="button" class="btn btn--primary btn--small" id="pi-analyze-jd-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            Instant Match
+          </button>
+          <button type="button" class="btn btn--ghost btn--small" id="pi-deep-ai-jd-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+            Deep AI Fit Report
+          </button>
+          <button type="button" class="btn btn--ghost btn--small" id="pi-clear-jd-btn" style="margin-left: auto;">Clear</button>
+        </div>
+
+        <p class="pi-privacy-notice" style="margin: var(--s-2) 0 0; font-size: var(--fs-xs); color: var(--text-3);">
+          Privacy Notice: Job descriptions are processed in real time by AI for role matching and are never stored or logged.
+        </p>
+
+        <!-- JD Match Output Container -->
+        <div class="pi-jd-results" id="pi-jd-results" hidden>
+          <div class="pi-jd-score-bar">
+            <div>
+              <span class="pi-score-badge" id="pi-score-badge">Strong Match</span>
+              <p class="pi-score-summary" id="pi-score-summary" style="margin: var(--s-2) 0 0; font-size: var(--fs-sm); color: var(--text-2);"></p>
+            </div>
+          </div>
+
+          <div style="margin-top: var(--s-4);">
+            <p class="card__label">Matched Technologies &amp; Capabilities</p>
+            <ul class="chip-list" id="pi-matched-skills"></ul>
+          </div>
+
+          <div style="margin-top: var(--s-3);" id="pi-unmatched-container" hidden>
+            <p class="card__label" style="color: var(--amber);">Not Demonstrated in Current Portfolio</p>
+            <ul class="chip-list" id="pi-unmatched-skills"></ul>
+          </div>
+
+          <div style="margin-top: var(--s-4);">
+            <p class="card__label">Directly Relevant Projects</p>
+            <div class="pi-matched-projects" id="pi-matched-projects"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         TAB 3: TECH DIVE (Architecture, Decisions, AI Work, Deep Dives)
+         ========================================================= -->
+    {% set td = content.portfolio_intelligence.tech_dive %}
+    <div class="pi-panel" id="pi-panel-tech-dive" role="tabpanel" aria-labelledby="pi-tab-tech-dive" hidden>
+      <!-- Sub-Tabs for Tech Dive -->
+      <div class="pi-subtabs" role="tablist" aria-label="Tech Dive Categories">
+        <button type="button" class="pi-subtab is-active" data-td-sub="architecture" role="tab" aria-selected="true">System Architectures</button>
+        <button type="button" class="pi-subtab" data-td-sub="decisions" role="tab" aria-selected="false">Engineering Decisions</button>
+        <button type="button" class="pi-subtab" data-td-sub="ai-work" role="tab" aria-selected="false">AI Core Pillars</button>
+        <button type="button" class="pi-subtab" data-td-sub="deep-dives" role="tab" aria-selected="false">Project Deep Dives</button>
+      </div>
+
+      <!-- 1. System Architectures -->
+      <div class="td-section is-active" id="td-sub-architecture">
+        {% for arch in td.architectures %}
+        <div class="glass card pi-card reveal" style="margin-bottom: var(--s-5);">
+          <div class="project-card__top">
+            <div>
+              <span class="badge">Architecture Diagram</span>
+              <h3 class="card__title" style="margin: var(--s-2) 0 0;">{{ arch.title }}</h3>
+              <p style="color: var(--text-2); font-size: var(--fs-sm); margin: var(--s-1) 0 0;">{{ arch.summary }}</p>
+            </div>
+          </div>
+
+          <div class="pi-arch-flow" style="margin-top: var(--s-5);">
+            {% for s in arch.steps %}
+            <div class="pi-arch-step">
+              <span class="pi-arch-step__tag">{{ s.step }}</span>
+              <p style="margin: var(--s-1) 0 0; font-size: var(--fs-sm); color: var(--text-2);">{{ s.desc }}</p>
+            </div>
+            {% if not loop.last %}
+            <span class="pi-arch-arrow" aria-hidden="true">&rarr;</span>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- 2. Engineering Decisions -->
+      <div class="td-section" id="td-sub-decisions" hidden>
+        <div class="pi-decisions-grid">
+          {% for dec in td.engineering_decisions %}
+          <div class="glass card pi-card reveal" style="--i: {{ loop.index0 }};">
+            <span class="badge badge--tradeoff">Verified Technical Implementation</span>
+            <h3 class="card__title" style="margin: var(--s-2) 0 var(--s-3); font-size: var(--fs-lg);">{{ dec.title }}</h3>
+
+            <div class="pi-decision-compare">
+              <div class="pi-compare-box pi-compare-box--chosen" style="grid-column: 1 / -1;">
+                <span class="pi-compare-label">&check; Implemented Architecture</span>
+                <strong>{{ dec.choice }}</strong>
+              </div>
+            </div>
+
+            <p style="color: var(--text-2); font-size: var(--fs-sm); margin: var(--s-3) 0 var(--s-2); line-height: 1.6;">
+              <strong style="color: var(--text);">Context &amp; Need:</strong> {{ dec.context }}
+            </p>
+            <p style="color: var(--text-2); font-size: var(--fs-sm); margin: 0 0 var(--s-2); line-height: 1.6;">
+              <strong style="color: var(--text);">Engineering Rationale:</strong> {{ dec.rationale }}
+            </p>
+            <p style="color: var(--text-3); font-size: var(--fs-xs); margin: 0;">
+              <strong>Source:</strong> {{ dec.source }}
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 3. AI Core Pillars -->
+      <div class="td-section" id="td-sub-ai-work" hidden>
+        <div class="pi-pillars-grid">
+          {% for pillar in td.ai_work %}
+          <div class="glass card pi-card reveal" style="--i: {{ loop.index0 }};">
+            <span class="badge">Core Technical Pillar</span>
+            <h3 class="card__title" style="margin: var(--s-2) 0 var(--s-2);">{{ pillar.pillar }}</h3>
+            <p style="color: var(--text-2); font-size: var(--fs-sm); margin-bottom: var(--s-4); line-height: 1.6;">
+              {{ pillar.description }}
+            </p>
+            <ul class="chip-list chip-list--small">
+              {% for skill in pillar.skills %}
+              <li class="chip">{{ skill }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 4. Project Deep Dives -->
+      <div class="td-section" id="td-sub-deep-dives" hidden>
+        <div class="pi-deepdives-grid">
+          {% for dive in td.deep_dives %}
+          <div class="glass card pi-card reveal" style="--i: {{ loop.index0 }};">
+            <div class="project-card__top">
+              <div>
+                <span class="badge">{{ dive.metric }}</span>
+                <h3 class="card__title" style="margin: var(--s-2) 0 0;">{{ dive.title }}</h3>
+              </div>
+            </div>
+
+            <div style="margin-top: var(--s-3);">
+              <p style="margin: 0 0 var(--s-2); font-size: var(--fs-sm); color: var(--text-2);">
+                <strong style="color: var(--text);">Challenge:</strong> {{ dive.problem }}
+              </p>
+              <p style="margin: 0 0 var(--s-4); font-size: var(--fs-sm); color: var(--text-2);">
+                <strong style="color: var(--text);">Solution:</strong> {{ dive.solution }}
+              </p>
+            </div>
+
+            <ul class="chip-list chip-list--small">
+              {% for t in dive.tech %}<li class="chip">{{ t }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
