@@ -74,7 +74,7 @@ export class AIService {
       }
       const result = await response.json();
       const reply = result.choices?.[0]?.message?.content;
-      if (typeof reply !== 'string') throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
+      if (typeof reply !== 'string' || !reply.trim()) throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
       if (mode !== 'jd_match') {
         await this.store.saveChat(id, message, reply.trim());
       }

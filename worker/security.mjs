@@ -81,7 +81,10 @@ export async function verifyChallenge(data, request, env, action, http) {
   });
   if (!response.ok) throw new HttpError(503, 'Verification unavailable.');
   const result = await response.json();
-  if (!result.success || result.hostname !== new URL(env.SITE_URL).hostname || result.action !== action) throw new HttpError(403, 'Verification failed. Please retry.');
+  if (!result.success || result.hostname !== new URL(env.SITE_URL).hostname || result.action !== action) {
+    console.warn('Turnstile rejected', {expectedAction: action, success: result.success, hostname: result.hostname, action: result.action, errorCodes: result['error-codes']});
+    throw new HttpError(403, 'Verification failed. Please retry.');
+  }
 }
 export async function budget(store, action, cap) {
   const now = nowSeconds();

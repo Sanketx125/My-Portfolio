@@ -9,7 +9,7 @@
       const script = document.createElement("script");
       script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       script.onload = resolve;
-      script.onerror = reject;
+      script.onerror = function (e) { challengeReady = null; reject(e); };
       document.head.appendChild(script);
     });
     return challengeReady.then(function () {
@@ -25,13 +25,14 @@
           container.remove();
           if (token) resolve(token); else reject(new Error("Please retry verification."));
         }
-        window.turnstile.ready(function () {
+        // Injected scripts are async and make the ready hook throw; onload already guarantees the API exists.
+        try {
           widget = window.turnstile.render(container, {
             sitekey: config.turnstileSiteKey, action: action, appearance: "interaction-only",
             callback: finish, "error-callback": function () { finish(null); },
             "expired-callback": function () { finish(null); }
           });
-        });
+        } catch (error) { finish(null); }
       });
     });
   }

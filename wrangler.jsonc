@@ -18,7 +18,7 @@
     "migrations_dir": "migrations"
   }],
   "triggers": {"crons": ["*/10 * * * *"]},
-  "observability": {"enabled": false},
+  "observability": {"enabled": true, "logs": {"enabled": true, "invocation_logs": true}},
   "vars": {
     "SITE_URL": "https://replace-me.workers.dev",
     "LLM_API_BASE": "https://api.openai.com/v1",

@@ -58,8 +58,8 @@ async function handle(request, env, ctx, http = defaultFetch) {
 
 export {handle, defaultFetch};
 export default {
-  async fetch(request, env, ctx) {
-    try { return await handle(request, env, ctx); }
+  async fetch(request, env, ctx, http) {
+    try { return await handle(request, env, ctx, http); }
     catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
       if (status >= 500) console.error('Portfolio API request failed', {status, path: new URL(request.url).pathname, name: error?.name, message: error?.message});

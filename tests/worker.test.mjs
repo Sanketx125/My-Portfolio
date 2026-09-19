@@ -8,7 +8,7 @@ import {AIService, MailService, validateCapabilityRegistry, validateContact} fro
 import {GitHubService} from '../worker/github.mjs';
 import {Store} from '../worker/store.mjs';
 import {HttpError, checkOrigin, rateLimit, readJSON, session, verifyChallenge} from '../worker/security.mjs';
-import {handle, defaultFetch} from '../worker/index.mjs';
+import worker, {handle, defaultFetch} from '../worker/index.mjs';
 
 const response = (body, status = 200) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
 
@@ -317,3 +317,114 @@ test('existing fetch receiver regression remains covered', async () => {
   assert.equal(await res.text(), 'receiver-ok');
 });
 
+
+const PROD = 'https://sanket-portfolio.studystock105.workers.dev';
+const PROD_HOST = 'sanket-portfolio.studystock105.workers.dev';
+const okDb = {batch: async () => [], prepare: () => ({bind: () => ({first: async () => ({turns: 1, count: 1, key: 'k'}), run: async () => ({}), all: async () => ({results: []})})})};
+// Full Worker entry (error mapping included) with the injected outbound http.
+const serve = (request, env, http) => worker.fetch(request, env, {}, http);
+const chatEnv = (over = {}) => ({
+  SITE_URL: PROD, SESSION_SECRET: 'k'.repeat(32), TURNSTILE_SECRET_KEY: 'ts-secret-value', LLM_API_KEY: 'llm-secret-value',
+  LLM_MODEL: 'gemini-model', LLM_API_BASE: 'https://generativelanguage.googleapis.com/v1beta/openai', CHAT_DAILY_BUDGET: '50',
+  DB: okDb, ...over,
+});
+const chatRequest = (headers = {}) => new Request(`${PROD}/api/chat`, {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json', Origin: PROD, 'Sec-Fetch-Site': 'same-origin', 'CF-Connecting-IP': '203.0.113.9', ...headers},
+  body: JSON.stringify({message: 'Tell me about Sanket', mode: 'default', turnstile_token: 'fresh-token'}),
+});
+function routedHttp({turnstile = {success: true, hostname: PROD_HOST, action: 'chat'}, llm = () => response({choices: [{message: {content: 'AI answer'}}]})} = {}) {
+  const calls = {turnstile: 0, llm: 0, options: []};
+  const http = async (url, options) => {
+    calls.options.push(options);
+    if (String(url).includes('siteverify')) { calls.turnstile++; return response(turnstile); }
+    calls.llm++;
+    assert.equal(String(url), 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    return llm();
+  };
+  return {http, calls};
+}
+async function captureLogs(fn) {
+  const logs = [];
+  const originals = ['error', 'warn', 'info', 'log'].map(k => [k, console[k]]);
+  for (const [k] of originals) console[k] = (...a) => logs.push(JSON.stringify(a));
+  try { return {result: await fn(), logs: logs.join('\n')}; } finally { for (const [k, f] of originals) console[k] = f; }
+}
+
+test('production chat: exact workers.dev origin succeeds, sets a __Host- session cookie, reaches LLM once', async () => {
+  const {http, calls} = routedHttp();
+  const res = await serve(chatRequest(), chatEnv(), http);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {reply: 'AI answer'});
+  assert.equal(calls.turnstile, 1);
+  assert.equal(calls.llm, 1);
+  const cookie = res.headers.get('set-cookie');
+  assert.match(cookie, /^__Host-portfolio=.*; Path=\/; HttpOnly; Secure; SameSite=Strict/);
+  assert.doesNotMatch(cookie, /Domain=/i);
+  const llmCall = calls.options.at(-1);
+  assert.deepEqual(Object.keys(JSON.parse(llmCall.body)).sort(), ['max_tokens', 'messages', 'model', 'temperature']);
+  assert.equal(llmCall.headers.Authorization, 'Bearer llm-secret-value');
+});
+
+test('production chat: bad origins are rejected before Turnstile or LLM', async () => {
+  for (const origin of ['https://evil.test', `${PROD}/`, 'http://' + PROD_HOST, null]) {
+    const {http, calls} = routedHttp();
+    const request = chatRequest();
+    if (origin === null) request.headers.delete('origin'); else request.headers.set('origin', origin);
+    const res = await serve(request, chatEnv(), http);
+    assert.equal(res.status, 403, String(origin));
+    assert.equal(calls.turnstile + calls.llm, 0);
+  }
+});
+
+test('production chat: Turnstile failure never reaches the LLM and logs only result fields', async () => {
+  const {http, calls} = routedHttp({turnstile: {success: false, 'error-codes': ['timeout-or-duplicate']}});
+  const {result, logs} = await captureLogs(() => serve(chatRequest(), chatEnv(), http));
+  assert.equal(result.status, 403);
+  assert.equal(calls.llm, 0);
+  assert.match(logs, /timeout-or-duplicate/);
+  assert.doesNotMatch(logs, /fresh-token|ts-secret-value/);
+  const wrongAction = routedHttp({turnstile: {success: true, hostname: PROD_HOST, action: 'contact'}});
+  assert.equal((await captureLogs(() => serve(chatRequest(), chatEnv(), wrongAction.http))).result.status, 403);
+  assert.equal(wrongAction.calls.llm, 0);
+});
+
+test('production chat: rate limit rejection is 429 and skips Turnstile', async () => {
+  const {http, calls} = routedHttp();
+  const db = {prepare: () => ({bind: () => ({first: async () => null, run: async () => ({}), all: async () => ({results: []})})})};
+  const res = await serve(chatRequest(), chatEnv({DB: db}), http);
+  assert.equal(res.status, 429);
+  assert.equal(calls.turnstile + calls.llm, 0);
+});
+
+test('production chat: provider errors, redirects, bad schema and missing key fail safely without leaking secrets', async () => {
+  const cases = [
+    ...[400, 401, 403, 404, 429, 500].map(status => ({status, llm: () => new Response('provider echoed Bearer llm-secret-value', {status})})),
+    ...[301, 302, 307, 308].map(status => ({status, llm: () => new Response('', {status, headers: {Location: 'https://evil.test'}})})),
+    {status: 200, llm: () => response({})},
+    {status: 200, llm: () => response({choices: [{message: {content: '   '}}]})},
+    {status: 200, llm: () => response({choices: [{message: {content: 42}}]})},
+  ];
+  for (const c of cases) {
+    const {http} = routedHttp({llm: c.llm});
+    const {result, logs} = await captureLogs(() => serve(chatRequest(), chatEnv(), http));
+    assert.equal(result.status, 502, `provider status ${c.status}`);
+    const body = await result.text();
+    for (const secret of ['ts-secret-value', 'fresh-token', 'k'.repeat(32)]) {
+      assert.ok(!body.includes(secret) && !logs.includes(secret), `secret leaked: ${secret.slice(0, 4)}`);
+    }
+    assert.ok(!body.includes('llm-secret-value'));
+  }
+  const {http, calls} = routedHttp();
+  const res = await serve(chatRequest(), chatEnv({LLM_API_KEY: undefined}), http);
+  assert.equal(res.status, 503);
+  assert.equal(calls.llm, 0);
+});
+
+test('production Worker config keeps observability logs enabled', () => {
+  assert.match(fs.readFileSync('wrangler.jsonc', 'utf8'), /"observability":\s*\{"enabled":\s*true/);
+});
+
+test('browser Turnstile client never calls turnstile.ready() (throws for injected async scripts)', () => {
+  assert.doesNotMatch(fs.readFileSync('static/js/api-client.js', 'utf8'), /turnstile\.ready\(/);
+});

@@ -112,7 +112,7 @@ test('production client obtains a Turnstile token before a write request', async
   }));
   await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', route => route.fulfill({
     contentType: 'application/javascript',
-    body: `window.turnstile={ready:function(cb){cb();},render:function(_el,opts){setTimeout(function(){opts.callback('verified-test-token');},0);return 1;},remove:function(){}};`,
+    body: `window.turnstile={ready:function(){throw new Error("Remove async/defer from the Turnstile api.js script tag before using turnstile.ready().");},render:function(_el,opts){setTimeout(function(){opts.callback('verified-test-token');},0);return 1;},remove:function(){}};`,
   }));
   let submitted;
   await page.route('**/api/contact', async route => {
