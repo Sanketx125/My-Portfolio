@@ -73,8 +73,12 @@ export class GitHubService {
       headers: {'Authorization': `bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'sanket-portfolio'},
       body: JSON.stringify({query: portfolio.githubQuery, variables: {login: username}}),
     });
-    if (!response.ok) throw new HttpError(502, 'GitHub activity is temporarily unavailable.');
+    if (!response.ok) {
+      console.error('GitHub API error', {status: response.status, username, body: (await response.text().catch(() => '')).slice(0, 300)});
+      throw new HttpError(502, 'GitHub activity is temporarily unavailable.');
+    }
     const body = await response.json();
+    if (body.errors || !body.data?.user) console.error('GitHub GraphQL error', {username, errors: JSON.stringify(body.errors || 'no user').slice(0, 300)});
     if (body.errors || !body.data?.user) throw new HttpError(502, 'GitHub activity is temporarily unavailable.');
     return body.data.user;
   }

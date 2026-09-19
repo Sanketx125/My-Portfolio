@@ -10,7 +10,10 @@ const templateEnv = new nunjucks.Environment([], {autoescape: true, throwOnUndef
 templateEnv.addFilter('sliceFirst', (items, length) => (items || []).slice(0, length));
 const githubView = new nunjucks.Template({type: 'code', obj: githubTemplate}, templateEnv, 'github', true);
 
-async function handle(request, env, ctx, http = fetch) {
+// Workers reject fetch called with a foreign `this` (service.http(...)); wrap so any receiver works.
+const defaultFetch = (...args) => fetch(...args);
+
+async function handle(request, env, ctx, http = defaultFetch) {
   const url = new URL(request.url);
   const store = new Store(env.DB);
   if (request.method === 'POST' && url.pathname === '/api/chat') {
@@ -40,7 +43,7 @@ async function handle(request, env, ctx, http = fetch) {
     await rateLimit(store, request, env, 'github');
     let data;
     try { data = await new GitHubService(store, env, http).get(); }
-    catch { data = portfolio.fallback; }
+    catch (error) { console.error('GitHub fetch failed', {name: error?.name, message: error?.message}); data = portfolio.fallback; }
     return json({...data, html: data.configured ? githubView.render({github: data, content: portfolio.content}) : undefined});
   }
   throw new HttpError(404, 'Not found.');
@@ -52,12 +55,12 @@ export default {
     try { return await handle(request, env, ctx); }
     catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
-      if (status >= 500) console.error('Portfolio API request failed', {status, path: new URL(request.url).pathname});
+      if (status >= 500) console.error('Portfolio API request failed', {status, path: new URL(request.url).pathname, name: error?.name, message: error?.message});
       return json({error: error instanceof HttpError ? error.message : 'The service is temporarily unavailable.', ...(error?.fields ? {fields: error.fields} : {})}, status);
     }
   },
   async scheduled(_event, env, ctx) {
     const store = new Store(env.DB);
-    ctx.waitUntil(Promise.all([new MailService(store, env, fetch).flush(8), store.cleanup(nowSeconds())]));
+    ctx.waitUntil(Promise.all([new MailService(store, env, defaultFetch).flush(8), store.cleanup(nowSeconds())]));
   },
 };

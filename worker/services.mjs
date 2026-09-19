@@ -68,12 +68,13 @@ export class AIService {
         body: JSON.stringify({model: this.env.LLM_MODEL, messages, max_tokens: 500, temperature: 0.5}),
       });
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("LLM PROVIDER ERROR", response.status, errorText);
+        // Log provider detail server-side only; client still gets the generic message.
+        console.error('LLM provider error', {status: response.status, model: this.env.LLM_MODEL, body: (await response.text().catch(() => '')).slice(0, 500)});
         throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
       }
       const result = await response.json();
       const reply = result.choices?.[0]?.message?.content;
+      if (typeof reply !== 'string') throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
       if (mode !== 'jd_match') {
         await this.store.saveChat(id, message, reply.trim());
       }
