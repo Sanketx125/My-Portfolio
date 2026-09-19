@@ -63,7 +63,7 @@ export class AIService {
       await budget(this.store, 'chat', Number(this.env.CHAT_DAILY_BUDGET));
       const messages = [{role: 'system', content: portfolio.prompts[mode]}, ...await this.store.history(id), {role: 'user', content: message}];
       const response = await this.http(endpoint.href.replace(/\/$/, '') + '/chat/completions', {
-        method: 'POST', redirect: 'error', signal: AbortSignal.timeout(20000),
+        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(20000),
         headers: {'Content-Type': 'application/json', Authorization: `Bearer ${this.env.LLM_API_KEY}`},
         body: JSON.stringify({model: this.env.LLM_MODEL, messages, max_tokens: 500, temperature: 0.5}),
       });
@@ -113,7 +113,7 @@ export class MailService {
           ...(visitor ? {} : {replyTo: {email: contact.email}}),
         };
         const response = await this.http('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
+          method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(10000),
           headers: {'api-key': this.env.BREVO_API_KEY, 'Content-Type': 'application/json'}, body: JSON.stringify(body),
         });
         if (!response.ok) throw new Error('Mail provider failure');

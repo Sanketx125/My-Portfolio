@@ -49,7 +49,7 @@ async function handle(request, env, ctx, http = defaultFetch) {
   throw new HttpError(404, 'Not found.');
 }
 
-export {handle};
+export {handle, defaultFetch};
 export default {
   async fetch(request, env, ctx) {
     try { return await handle(request, env, ctx); }

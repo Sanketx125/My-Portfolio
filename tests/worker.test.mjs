@@ -2,10 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import nunjucks from 'nunjucks/browser/nunjucks-slim.js';
 import templateData from '../.generated/github-template.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
 import {AIService, MailService, validateCapabilityRegistry, validateContact} from '../worker/services.mjs';
 import {GitHubService} from '../worker/github.mjs';
 import {Store} from '../worker/store.mjs';
 import {HttpError, checkOrigin, rateLimit, readJSON, session, verifyChallenge} from '../worker/security.mjs';
+import {handle, defaultFetch} from '../worker/index.mjs';
 
 const response = (body, status = 200) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
 
@@ -151,3 +154,144 @@ test('precompiled GitHub template autoescapes API text', () => {
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;script&gt;/);
 });
+
+test('production Worker source contains zero redirect: "error" for Cloudflare runtime compatibility', () => {
+  const workerDir = path.resolve('worker');
+  const files = fs.readdirSync(workerDir).filter(f => f.endsWith('.mjs') || f.endsWith('.js'));
+  assert.ok(files.length > 0, 'Worker directory must contain source files');
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(workerDir, file), 'utf8');
+    assert.doesNotMatch(content, /redirect:\s*['"]error['"]/i, `File ${file} must not contain redirect: 'error'`);
+  }
+});
+
+test('external requests use redirect: "manual"', async () => {
+  const store = new FakeStore();
+  const env = {
+    LLM_API_KEY: 'test-key', LLM_MODEL: 'model', LLM_API_BASE: 'https://llm.test/v1',
+    CHAT_DAILY_BUDGET: '50', GITHUB_USERNAME: 'testuser', GITHUB_TOKEN: 'testtoken',
+    BREVO_API_KEY: 'testkey', MAIL_FROM: 'from@test.com', CONTACT_TO_EMAIL: 'to@test.com',
+    SITE_URL: 'https://site.test', TURNSTILE_SECRET_KEY: 'secret',
+  };
+
+  // 1. AI Service
+  let aiOptions;
+  const aiHttp = async (_url, options) => { aiOptions = options; return response({choices: [{message: {content: 'ok'}}]}); };
+  await new AIService(store, env, aiHttp).reply({message: 'hi', mode: 'default'}, 's1');
+  assert.equal(aiOptions.redirect, 'manual');
+
+  // 2. GitHub Service
+  let ghOptions;
+  const ghHttp = async (_url, options) => { ghOptions = options; return response({data: {user: {publicRepos: {nodes: []}}}}); };
+  await new GitHubService(store, env, ghHttp).fetchUser('testuser', 'testtoken');
+  assert.equal(ghOptions.redirect, 'manual');
+
+  // 3. Mail Service
+  let mailOptions;
+  const mailStore = {
+    count: 0, updates: [], reserve: async () => true,
+    one: async (sql) => sql.startsWith('UPDATE outbox') ? (mailStore.count++ ? null : {id: 'm1', contact_id: 1, kind: 'owner', attempts: 1}) : {name: 'A', email: 'a@a.com', project_type: 'ai', message: 'hello'},
+    run: async () => ({}),
+  };
+  const mailHttp = async (_url, options) => { mailOptions = options; return response({messageId: '1'}); };
+  await new MailService(mailStore, env, mailHttp).flush(1);
+  assert.equal(mailOptions.redirect, 'manual');
+
+  // 4. Turnstile verifyChallenge
+  let turnstileOptions;
+  const turnstileHttp = async (_url, options) => { turnstileOptions = options; return response({success: true, hostname: 'site.test', action: 'chat'}); };
+  await verifyChallenge({turnstile_token: 'token'}, new Request('https://site.test', {headers: {'cf-connecting-ip': '1.2.3.4'}}), env, 'chat', turnstileHttp);
+  assert.equal(turnstileOptions.redirect, 'manual');
+});
+
+test('AI provider redirects fail safely and release leases', async () => {
+  const store = new FakeStore();
+  const releases = [];
+  store.release = async key => releases.push(key);
+  const env = {LLM_API_KEY: 'test-key', LLM_MODEL: 'model', LLM_API_BASE: 'https://llm.test/v1', CHAT_DAILY_BUDGET: '50'};
+  for (const status of [301, 302, 307, 308]) {
+    const redirectResponse = async () => new Response('Moved', {status, headers: {Location: 'https://evil.test'}});
+    await assert.rejects(
+      new AIService(store, env, redirectResponse).reply({message: 'hi', mode: 'default'}, 's1'),
+      error => error instanceof HttpError && error.status === 502,
+    );
+  }
+  assert.deepEqual(releases.slice(0, 2).sort(), ['chat:s1', 'llm:0']);
+});
+
+test('GitHub redirects fall back safely and reject 3xx status', async () => {
+  const store = new FakeStore();
+  const env = {GITHUB_USERNAME: 'person', GITHUB_TOKEN: 'token'};
+  for (const status of [301, 302, 307, 308]) {
+    const redirectResponse = async () => new Response('Moved', {status, headers: {Location: 'https://evil.test'}});
+    const service = new GitHubService(store, env, redirectResponse);
+    await assert.rejects(service.fetchUser('person', 'token'), error => error instanceof HttpError && error.status === 502);
+  }
+
+  // Route-level fallback on GET /api/github
+  const request = new Request('https://site.test/api/github', {headers: {'cf-connecting-ip': '127.0.0.1'}});
+  const mockEnv = {
+    DB: {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => ({count: 1}),
+          run: async () => ({}),
+          all: async () => ({results: []}),
+        }),
+      }),
+    },
+    GITHUB_USERNAME: 'person',
+    GITHUB_TOKEN: 'token',
+    SESSION_SECRET: 'a'.repeat(32),
+  };
+  const redirectHttp = async () => new Response('Moved', {status: 301, headers: {Location: 'https://evil.test'}});
+  const routeResponse = await handle(request, mockEnv, {}, redirectHttp);
+  assert.equal(routeResponse.status, 200);
+  const data = await routeResponse.json();
+  assert.equal(data.configured, false);
+});
+
+test('Brevo redirect does not mark mail as sent and leaves outbox pending', async () => {
+  const updates = [];
+  const mailStore = {
+    count: 0, reserve: async () => true,
+    one: async (sql) => sql.startsWith('UPDATE outbox') ? (mailStore.count++ ? null : {id: 'm1', contact_id: 1, kind: 'owner', attempts: 1}) : {name: 'A', email: 'a@a.com', project_type: 'ai', message: 'hello'},
+    run: async (sql, ...args) => { updates.push([sql, args]); },
+  };
+  const env = {BREVO_API_KEY: 'key', MAIL_FROM: 'from@test.com', CONTACT_TO_EMAIL: 'to@test.com'};
+  for (const status of [301, 302]) {
+    updates.length = 0;
+    mailStore.count = 0;
+    const redirectHttp = async () => new Response('Redirect', {status, headers: {Location: 'https://evil.test'}});
+    await new MailService(mailStore, env, redirectHttp).flush(1);
+    assert.equal(updates.length, 1);
+    assert.match(updates[0][0], /SET state=/);
+    assert.equal(updates[0][1][0], 'pending');
+    assert.doesNotMatch(updates[0][0], /state='sent'/);
+  }
+});
+
+test('Turnstile redirect cannot pass verification', async () => {
+  const request = new Request('https://site.test/api/chat', {headers: {'cf-connecting-ip': '192.0.2.1'}});
+  const env = {SITE_URL: 'https://site.test', TURNSTILE_SECRET_KEY: 'secret'};
+  for (const status of [301, 302]) {
+    const redirectHttp = async () => new Response('Redirect', {status, headers: {Location: 'https://evil.test'}});
+    await assert.rejects(
+      verifyChallenge({turnstile_token: 'token'}, request, env, 'chat', redirectHttp),
+      error => error instanceof HttpError && error.status === 503,
+    );
+  }
+});
+
+test('existing fetch receiver regression remains covered', async () => {
+  assert.equal(typeof defaultFetch, 'function');
+  const serviceLikeObject = {
+    http: defaultFetch,
+    async ping() {
+      return this.http('data:text/plain,receiver-ok');
+    },
+  };
+  const res = await serviceLikeObject.ping();
+  assert.equal(await res.text(), 'receiver-ok');
+});
+

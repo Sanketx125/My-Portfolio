@@ -135,6 +135,23 @@ class StaticBuildTests(unittest.TestCase):
         self.assertNotIn("privacy: PRIVATE", _QUERY)
         self.assertNotIn("privateRepos", _QUERY)
 
+    def test_worker_source_and_bundle_have_no_redirect_error(self):
+        worker_dir = ROOT / "worker"
+        for path in worker_dir.glob("*.mjs"):
+            content = path.read_text(encoding="utf8")
+            self.assertNotIn("redirect: 'error'", content, f"{path.name} has redirect: 'error'")
+            self.assertNotIn('redirect: "error"', content, f"{path.name} has redirect: \"error\"")
+            self.assertNotIn("redirect:'error'", content, f"{path.name} has redirect:'error'")
+            self.assertNotIn('redirect:"error"', content, f"{path.name} has redirect:\"error\"")
+
+        bundle_path = ROOT / ".artifacts/worker/index.js"
+        if bundle_path.exists():
+            bundle_content = bundle_path.read_text(encoding="utf8")
+            self.assertNotIn("redirect: 'error'", bundle_content)
+            self.assertNotIn('redirect: "error"', bundle_content)
+            self.assertNotIn("redirect:'error'", bundle_content)
+            self.assertNotIn('redirect:"error"', bundle_content)
+
 
 if __name__ == "__main__":
     unittest.main()

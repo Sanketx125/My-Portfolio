@@ -77,7 +77,7 @@ export async function verifyChallenge(data, request, env, action, http) {
   const response = await http('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({secret: env.TURNSTILE_SECRET_KEY, response: data.turnstile_token, remoteip: request.headers.get('cf-connecting-ip')}),
-    signal: AbortSignal.timeout(8000), redirect: 'error',
+    signal: AbortSignal.timeout(8000), redirect: 'manual',
   });
   if (!response.ok) throw new HttpError(503, 'Verification unavailable.');
   const result = await response.json();

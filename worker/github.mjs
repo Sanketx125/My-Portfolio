@@ -69,7 +69,7 @@ export class GitHubService {
   async fetchUser(username, token) {
     if (!username || !token) return null;
     const response = await this.http('https://api.github.com/graphql', {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(10000),
       headers: {'Authorization': `bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'sanket-portfolio'},
       body: JSON.stringify({query: portfolio.githubQuery, variables: {login: username}}),
     });
