@@ -149,10 +149,32 @@ test('D1 store binds user values instead of interpolating SQL', async () => {
 test('precompiled GitHub template autoescapes API text', () => {
   const env = new nunjucks.Environment([], {autoescape: true});
   env.addFilter('sliceFirst', (items, n) => items.slice(0, n));
+  env.addFilter('format', (fmt, ...args) => {
+    let idx = 0;
+    return String(fmt).replace(/%(\.\d+)?f/g, (_, p) => {
+      const v = Number(args[idx++]);
+      return p ? v.toFixed(parseInt(p.slice(1), 10)) : String(v);
+    }).replace(/%[sd]/g, () => String(args[idx++]));
+  });
   const template = new nunjucks.Template({type: 'code', obj: templateData}, env, 'github', true);
   const html = template.render({github: {configured: false, featured: [{name: '<img src=x onerror=1>', description: '<script>', url: 'https://github.com/a/b'}]}, content: {socials: {}}});
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;script&gt;/);
+  const liveHtml = template.render({
+    github: {
+      configured: true,
+      profile: {login: 'test', name: 'Test', avatar: 'https://avatar.test', bio: 'Bio'},
+      totals: {public_repos: 1, stars: 2, followers: 3, contributions: 4},
+      activity: {commits: 1, prs: 1, issues: 0},
+      languages: [{name: 'JavaScript', color: '#f1e05a', count: 1, pct: 100}],
+      featured: [],
+      calendar: {total: 4, peak: 1, weeks: []},
+      fetched_at: '2026-09-19T10:00:00Z',
+    },
+    content: {socials: {}},
+  });
+  assert.match(liveHtml, /Live/);
+  assert.match(liveHtml, /stroke-dasharray="339.29 0.00"/);
 });
 
 test('production Worker source contains zero redirect: "error" for Cloudflare runtime compatibility', () => {

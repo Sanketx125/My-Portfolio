@@ -8,6 +8,13 @@ import {HttpError, checkOrigin, json, rateLimit, readJSON, session, verifyChalle
 
 const templateEnv = new nunjucks.Environment([], {autoescape: true, throwOnUndefined: false});
 templateEnv.addFilter('sliceFirst', (items, length) => (items || []).slice(0, length));
+templateEnv.addFilter('format', (fmt, ...args) => {
+  let idx = 0;
+  return String(fmt).replace(/%(\.\d+)?f/g, (_, p) => {
+    const v = Number(args[idx++]);
+    return p ? v.toFixed(parseInt(p.slice(1), 10)) : String(v);
+  }).replace(/%[sd]/g, () => String(args[idx++]));
+});
 const githubView = new nunjucks.Template({type: 'code', obj: githubTemplate}, templateEnv, 'github', true);
 
 // Workers reject fetch called with a foreign `this` (service.http(...)); wrap so any receiver works.
