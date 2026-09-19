@@ -51,12 +51,22 @@ class StaticBuildTests(unittest.TestCase):
             "CLOUDFLARE_D1_DATABASE_ID": "12345678-1234-4234-8234-123456789abc",
             "SITE_URL": "https://portfolio.example.test",
             "TURNSTILE_SITE_KEY": "public-test-key",
+            "LLM_API_BASE": "https://api.openai.com/v1",
+            "LLM_MODEL": "gpt-4o-mini",
+            "GITHUB_USERNAME": "Sanketx125",
+            "CHAT_DAILY_BUDGET": "50",
+            "CONTACT_DAILY_BUDGET": "50",
         })
         result = subprocess.run([sys.executable, "scripts/render_deploy_config.py"], cwd=ROOT, env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         config = json.loads((ROOT / ".generated/wrangler.production.json").read_text(encoding="utf8"))
         self.assertEqual(config["d1_databases"][0]["database_id"], env["CLOUDFLARE_D1_DATABASE_ID"])
         self.assertEqual(config["vars"]["SITE_URL"], env["SITE_URL"])
+        self.assertEqual(config["main"], "../worker/index.mjs")
+        self.assertEqual(config["assets"]["directory"], "../dist")
+        self.assertEqual(config["d1_databases"][0]["migrations_dir"], "../migrations")
+        for name in ("LLM_API_BASE", "LLM_MODEL", "GITHUB_USERNAME", "CHAT_DAILY_BUDGET", "CONTACT_DAILY_BUDGET"):
+            self.assertEqual(config["vars"][name], env[name])
 
     def test_company_branding_is_strictly_nakshatech(self):
         forbidden_variants = ["NakshaTech", "Naksha Tech", "NAKSHATECH"]
