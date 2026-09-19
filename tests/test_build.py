@@ -46,6 +46,16 @@ class StaticBuildTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_production_config_accepts_only_public_deployment_identifiers(self):
+        config_path = ROOT / ".generated/wrangler.production.json"
+        original_config = config_path.read_bytes() if config_path.exists() else None
+
+        def restore_generated_config():
+            if original_config is None:
+                config_path.unlink(missing_ok=True)
+            else:
+                config_path.write_bytes(original_config)
+
+        self.addCleanup(restore_generated_config)
         env = os.environ.copy()
         env.update({
             "CLOUDFLARE_D1_DATABASE_ID": "12345678-1234-4234-8234-123456789abc",
@@ -59,7 +69,7 @@ class StaticBuildTests(unittest.TestCase):
         })
         result = subprocess.run([sys.executable, "scripts/render_deploy_config.py"], cwd=ROOT, env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        config = json.loads((ROOT / ".generated/wrangler.production.json").read_text(encoding="utf8"))
+        config = json.loads(config_path.read_text(encoding="utf8"))
         self.assertEqual(config["d1_databases"][0]["database_id"], env["CLOUDFLARE_D1_DATABASE_ID"])
         self.assertEqual(config["vars"]["SITE_URL"], env["SITE_URL"])
         self.assertEqual(config["main"], "../worker/index.mjs")
