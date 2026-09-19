@@ -67,7 +67,11 @@ export class AIService {
         headers: {'Content-Type': 'application/json', Authorization: `Bearer ${this.env.LLM_API_KEY}`},
         body: JSON.stringify({model: this.env.LLM_MODEL, messages, max_tokens: 500, temperature: 0.5}),
       });
-      if (!response.ok) throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("LLM PROVIDER ERROR", response.status, errorText);
+        throw new HttpError(502, 'The assistant provider is unavailable. Please try later.');
+      }
       const result = await response.json();
       const reply = result.choices?.[0]?.message?.content;
       if (mode !== 'jd_match') {
