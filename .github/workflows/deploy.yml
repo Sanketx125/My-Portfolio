@@ -24,7 +24,9 @@ jobs:
       TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
       LLM_API_BASE: ${{ vars.LLM_API_BASE }}
       LLM_MODEL: ${{ vars.LLM_MODEL }}
-      GITHUB_USERNAME: ${{ vars.GITHUB_USERNAME }}
+      # GITHUB_* is a reserved Actions variable prefix; derive the public
+      # username from the repository context instead.
+      GITHUB_USERNAME: ${{ github.repository_owner }}
       CHAT_DAILY_BUDGET: ${{ vars.CHAT_DAILY_BUDGET }}
       CONTACT_DAILY_BUDGET: ${{ vars.CONTACT_DAILY_BUDGET }}
     steps:
