@@ -13,7 +13,7 @@
     "deploy": "node scripts/wrangler.mjs deploy"
   },
   "devDependencies": {
-    "wrangler": "4.132.0",
+    "wrangler": "4.136.1",
     "@playwright/test": "1.58.2"
   },
   "dependencies": {
