@@ -31,7 +31,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: github/codeql-action/init@e6985fd516cce3b1a0e8db34a4013d2e50a1e252 # v4.32.0
+      - uses: github/codeql-action/init@b20883b0cd1f46c72ae0ba6d1090936928f9fa30 # v4.32.0
         with:
           languages: ${{ matrix.language }}
           build-mode: none
